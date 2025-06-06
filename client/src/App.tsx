@@ -29,7 +29,8 @@ function App() {
 
   // Effect to manage WebSocket connection
   useEffect(() => {
-    socket.current = new WebSocket('ws://localhost:3001');
+    const WS_URL = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:3001';
+    socket.current = new WebSocket(WS_URL);
 
     socket.current.onmessage = (event) => {
       const response: GameResponse = JSON.parse(event.data);
