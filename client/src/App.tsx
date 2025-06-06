@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 // Interfaces to match the backend's data structures
@@ -34,7 +34,7 @@ function App() {
 
     socket.current.onmessage = (event) => {
       const response: GameResponse = JSON.parse(event.data);
-
+      
       // Add the server's message to our log
       if (response.message) {
         setMessages(prev => [...prev, response.message]);
@@ -70,7 +70,7 @@ function App() {
     <div className="app-container">
       <div className="game-screen">
         <div className="room-info">
-          <h2>{room?.name || 'Loading...'}</h2>
+          <h2>{room?.name || 'Connecting to NightfallMUD...'}</h2>
           <p>{room?.description}</p>
           {room && <p>Exits: {Object.keys(room.exits).join(', ')}</p>}
         </div>
