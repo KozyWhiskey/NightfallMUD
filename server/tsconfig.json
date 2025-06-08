@@ -9,5 +9,5 @@
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true
     },
-    "include": ["src"] // Only compile files in the 'src' directory
+      "include": ["src/**/*", "prisma/**/*"],
   }

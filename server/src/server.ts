@@ -1,53 +1,73 @@
+// server/src/server.ts
 import express from 'express';
 import http from 'http';
-// Import 'RawData' in addition to the others
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import cors from 'cors';
-import { GameEngine, Command } from './game/gameEngine';
+import { GameEngine, Command, GameEvent } from './game/gameEngine';
 
 const app = express();
 const port = 3001;
-
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-  optionsSuccessStatus: 200
-};
+const corsOptions = { origin: process.env.CORS_ORIGIN || "http://localhost:5173", optionsSuccessStatus: 200 };
 app.use(cors(corsOptions));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-
 const game = new GameEngine();
-const playersockets: Map<string, WebSocket> = new Map();
+const playerSockets: Map<string, WebSocket> = new Map();
 
-wss.on('connection', (ws: WebSocket) => { // <-- Explicitly type 'ws' as WebSocket
+// Helper function now needs to be async to await getPlayersInRoom
+const processAndSendEvents = async (events: GameEvent[]) => {
+  for (const event of events) {
+    if (event.target === 'room') {
+      const playersInRoom = await game.getPlayersInRoom(event.payload.roomId, event.payload.exclude?.[0]);
+      playersInRoom.forEach(p => {
+        const playerSocket = playerSockets.get(p.id);
+        if (playerSocket?.readyState === WebSocket.OPEN) {
+          // Note: we are creating a simpler payload for broadcasts
+          playerSocket.send(JSON.stringify({ type: event.type, payload: { message: event.payload.message } }));
+        }
+      });
+    } else {
+      const playerSocket = playerSockets.get(event.target);
+      if (playerSocket?.readyState === WebSocket.OPEN) {
+        playerSocket.send(JSON.stringify({ type: event.type, payload: event.payload }));
+      }
+    }
+  }
+};
+
+wss.on('connection', async (ws: WebSocket) => { // <-- Main handler is now async
   const playerId = `player-${Date.now()}`;
-  playersockets.set(playerId, ws);
-
+  playerSockets.set(playerId, ws);
   console.log(`✅ Player ${playerId} connected.`);
 
-  const initialState = game.addPlayer(playerId);
-  ws.send(JSON.stringify(initialState));
+  try {
+    const initialEvents = await game.addPlayer(playerId);
+    await processAndSendEvents(initialEvents);
 
-  ws.on('message', (messageStr: RawData) => { // <-- Explicitly type 'messageStr' as RawData
-    try {
-      const command: Command = JSON.parse(messageStr.toString());
-      console.log(`Received command from ${playerId}:`, command);
+    ws.on('message', async (messageStr: RawData) => { // <-- Message handler is now async
+      try {
+        const command: Command = JSON.parse(messageStr.toString());
+        console.log(`Received command from ${playerId}:`, command);
+        const responseEvents = await game.processCommand(playerId, command);
+        await processAndSendEvents(responseEvents);
+      } catch (error) {
+        console.error(`Error processing command from ${playerId}:`, error);
+      }
+    });
 
-      const response = game.processCommand(playerId, command);
-      ws.send(JSON.stringify(response));
-
-    } catch (error) {
-      console.error(`Error processing command from ${playerId}:`, error);
-      ws.send(JSON.stringify({ message: "Error: Invalid command format." }));
-    }
-  });
-
-  ws.on('close', () => {
-    console.log(`❌ Player ${playerId} disconnected.`);
-    game.removePlayer(playerId);
-    playersockets.delete(playerId);
-  });
+    ws.on('close', async () => { // <-- Close handler is now async
+      console.log(`❌ Player ${playerId} disconnected.`);
+      const departureEvent = await game.removePlayer(playerId);
+      if (departureEvent) {
+        await processAndSendEvents([departureEvent]);
+      }
+      playerSockets.delete(playerId);
+    });
+  } catch (error) {
+    console.error(`Error during player connection ${playerId}:`, error);
+    ws.close();
+  }
 });
 
 server.listen(port, () => {
