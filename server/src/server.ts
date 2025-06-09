@@ -1,75 +1,175 @@
 // server/src/server.ts
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import cors from 'cors';
+import url from 'url';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
 import { GameEngine, Command, GameEvent } from './game/gameEngine';
+import dotenv from 'dotenv';
 
+dotenv.config();
+
+// --- SETUP AND CONFIG ---
 const app = express();
-const port = 3001;
-const corsOptions = { origin: process.env.CORS_ORIGIN || "http://localhost:5173", optionsSuccessStatus: 200 };
-app.use(cors(corsOptions));
+const port = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET as string;
+if (!JWT_SECRET) throw new Error("JWT_SECRET not defined!");
 
+const prisma = new PrismaClient();
+const game = new GameEngine();
+
+app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173", optionsSuccessStatus: 200 }));
+app.use(express.json());
+
+// --- AUTHENTICATION MIDDLEWARE ---
+export interface AuthenticatedRequest extends Request {
+  user?: { accountId: string; username: string; };
+}
+const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ message: 'Token required.' });
+  
+  const token = authHeader.split(' ')[1];
+  try {
+    req.user = jwt.verify(token, JWT_SECRET) as { accountId: string; username: string };
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid or expired token.' });
+  }
+};
+
+// --- API ROUTES ---
+
+// AUTH: Register
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ message: 'Username and password required.' });
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const account = await prisma.account.create({ data: { username, password: hashedPassword } });
+    res.status(201).json({ message: 'Account created.', accountId: account.id });
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(409).json({ message: 'Username already exists.' });
+    console.error(error);
+    res.status(500).json({ message: 'Registration error.' });
+  }
+});
+
+// AUTH: Login
+app.post('/api/auth/login', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ message: 'Username and password required.' });
+  try {
+    const account = await prisma.account.findUnique({ where: { username } });
+    if (!account || !(await bcrypt.compare(password, account.password))) {
+      return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+    const token = jwt.sign({ accountId: account.id, username: account.username }, JWT_SECRET, { expiresIn: '24h' });
+    res.status(200).json({ message: 'Login successful', token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Login error.' });
+  }
+});
+
+// CHARACTERS: Get all for account
+app.get('/api/characters', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Not authorized.' });
+  try {
+    const characters = await prisma.character.findMany({ where: { accountId: req.user.accountId } });
+    res.json(characters);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch characters.' });
+  }
+});
+
+// CHARACTERS: Create new
+app.post('/api/characters', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Not authorized.' });
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ message: 'Character name is required.' });
+
+  try {
+    const newCharacter = await prisma.character.create({
+      data: { name, accountId: req.user.accountId, currentRoomId: 'room-1' },
+    });
+    res.status(201).json(newCharacter);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(409).json({ message: 'Character name already exists.' });
+    console.error("Error creating character:", error);
+    res.status(500).json({ message: 'Internal error creating character.' });
+  }
+});
+
+// --- WEBSOCKET SERVER ---
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-const game = new GameEngine();
-const playerSockets: Map<string, WebSocket> = new Map();
+const characterSockets: Map<string, WebSocket> = new Map();
 
-// Helper function now needs to be async to await getPlayersInRoom
+// ... (processAndSendEvents and wss.on('connection') logic can remain the same as the last correct version)
 const processAndSendEvents = async (events: GameEvent[]) => {
   for (const event of events) {
-    if (event.target === 'room') {
-      const playersInRoom = await game.getPlayersInRoom(event.payload.roomId, event.payload.exclude?.[0]);
-      playersInRoom.forEach(p => {
-        const playerSocket = playerSockets.get(p.id);
-        if (playerSocket?.readyState === WebSocket.OPEN) {
-          // Note: we are creating a simpler payload for broadcasts
-          playerSocket.send(JSON.stringify({ type: event.type, payload: { message: event.payload.message } }));
+    const targetSocket = characterSockets.get(event.target);
+    if (targetSocket?.readyState === WebSocket.OPEN) {
+      targetSocket.send(JSON.stringify({ type: event.type, payload: event.payload }));
+    } else if (event.target === 'room') {
+      const charactersInRoom = await game.getCharactersInRoom(event.payload.roomId, event.payload.exclude?.[0]);
+      charactersInRoom.forEach(c => {
+        const charSocket = characterSockets.get(c.id);
+        if (charSocket?.readyState === WebSocket.OPEN) {
+          charSocket.send(JSON.stringify({ type: 'message', payload: { message: event.payload.message } }));
         }
       });
-    } else {
-      const playerSocket = playerSockets.get(event.target);
-      if (playerSocket?.readyState === WebSocket.OPEN) {
-        playerSocket.send(JSON.stringify({ type: event.type, payload: event.payload }));
-      }
     }
   }
 };
 
-wss.on('connection', async (ws: WebSocket) => { // <-- Main handler is now async
-  const playerId = `player-${Date.now()}`;
-  playerSockets.set(playerId, ws);
-  console.log(`✅ Player ${playerId} connected.`);
-
+wss.on('connection', async (ws: WebSocket, req) => {
+  let accountId = '';
   try {
-    const initialEvents = await game.addPlayer(playerId);
-    await processAndSendEvents(initialEvents);
-
-    ws.on('message', async (messageStr: RawData) => { // <-- Message handler is now async
-      try {
-        const command: Command = JSON.parse(messageStr.toString());
-        console.log(`Received command from ${playerId}:`, command);
-        const responseEvents = await game.processCommand(playerId, command);
-        await processAndSendEvents(responseEvents);
-      } catch (error) {
-        console.error(`Error processing command from ${playerId}:`, error);
-      }
-    });
-
-    ws.on('close', async () => { // <-- Close handler is now async
-      console.log(`❌ Player ${playerId} disconnected.`);
-      const departureEvent = await game.removePlayer(playerId);
-      if (departureEvent) {
-        await processAndSendEvents([departureEvent]);
-      }
-      playerSockets.delete(playerId);
-    });
+    const location = new url.URL(req.url || '', `ws://${req.headers.host}`);
+    const token = location.searchParams.get('token');
+    if (!token) throw new Error('No token provided.');
+    const decodedToken = jwt.verify(token, JWT_SECRET) as { accountId: string };
+    accountId = decodedToken.accountId;
+    console.log(`✅ Account ${accountId} authenticated via WebSocket.`);
   } catch (error) {
-    console.error(`Error during player connection ${playerId}:`, error);
-    ws.close();
+    ws.close(1008, "Invalid authentication token");
+    return;
   }
+  
+  let characterId = '';
+  ws.on('message', async (messageStr: RawData) => {
+    try {
+      const command: Command = JSON.parse(messageStr.toString());
+      if (!characterId && command.action === 'selectCharacter') {
+        const selectedCharId = command.payload;
+        // TODO: Verify this character belongs to the authenticated account
+        characterId = selectedCharId;
+        characterSockets.set(characterId, ws);
+        console.log(`🎮 Character ${characterId} selected for gameplay.`);
+        const initialEvents = await game.handleCharacterConnect(characterId);
+        await processAndSendEvents(initialEvents);
+      } else if (characterId) {
+        const responseEvents = await game.processCommand(characterId, command);
+        await processAndSendEvents(responseEvents);
+      }
+    } catch (error) { console.error(`Error processing command:`, error); }
+  });
+
+  ws.on('close', async () => {
+    if (characterId) {
+      console.log(`❌ Character ${characterId} disconnected.`);
+      const departureEvent = await game.handleCharacterDisconnect(characterId);
+      if (departureEvent) { await processAndSendEvents([departureEvent]); }
+      characterSockets.delete(characterId);
+    } else {
+      console.log(`🔌 Unassigned connection closed.`);
+    }
+  });
 });
 
-server.listen(port, () => {
-  console.log(`✅ Game server is running on http://localhost:${port}`);
-});
+server.listen(port, () => { console.log(`✅ Server is running on http://localhost:${port}`); });

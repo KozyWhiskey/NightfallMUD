@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// NightfallMUD/server/prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -10,44 +9,66 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Player Model: Represents a player character
-model Player {
-  id            String  @id @default(cuid())
-  name          String  @unique // Player names should be unique
-  
-  // Relation to Room: A player is in one room
-  currentRoomId String
-  room          Room    @relation("RoomToPlayers", fields: [currentRoomId], references: [id])
+// NEW: Account Model - Handles login and user identity
+model Account {
+  id        String      @id @default(cuid())
+  username  String      @unique
+  password  String
 
-  // Relation to Items: A player can have many items
-  inventory     Item[]  @relation("PlayerToItems")
+  // Relation: An account can have multiple characters
+  characters Character[]
 }
 
-// Room Model: Represents a location in the game world
+// NEW: Character Model - This is the player's in-game avatar with all stats
+model Character {
+  id            String @id @default(cuid())
+  name          String @unique // Character's name
+
+  // Relation to Account
+  accountId     String
+  account       Account @relation(fields: [accountId], references: [id])
+
+  // Stats
+  level         Int    @default(1)
+  experience    Int    @default(0)
+  gold          Int    @default(10)
+  strength      Int    @default(5)
+  dexterity     Int    @default(5)
+  constitution  Int    @default(5)
+  intelligence  Int    @default(5)
+  wisdom        Int    @default(5)
+  charisma      Int    @default(5)
+  hp            Int    @default(10)
+  maxHp         Int    @default(10)
+  mana          Int    @default(5)
+  maxMana       Int    @default(5)
+
+  // Game State
+  currentRoomId String
+  room          Room    @relation("RoomToCharacters", fields: [currentRoomId], references: [id])
+  inventory     Item[]  @relation("CharacterToItems")
+}
+
 model Room {
-  id          String   @id // We will use custom IDs like 'room-1'
+  id          String   @id
   name        String
   description String
-  exits       Json     // Storing exits as a JSON object for simplicity
+  exits       Json
 
-  // Relation to Players: A room can have many players
-  players     Player[] @relation("RoomToPlayers")
-
-  // Relation to Items: A room can have many items on the floor
-  items       Item[]   @relation("RoomToItems")
+  // Relation to Characters
+  characters  Character[] @relation("RoomToCharacters")
+  items       Item[]      @relation("RoomToItems")
 }
 
-// Item Model: Represents an item that can be in a room or a player's inventory
 model Item {
   id          String  @id @default(cuid())
   name        String
   description String
 
-  // An item can be in a room OR in a player's inventory, but not both.
-  // The '?' makes the relation optional.
+  // An item can be in a room OR in a character's inventory
   roomId      String?
   room        Room?   @relation("RoomToItems", fields: [roomId], references: [id])
-  
-  playerId    String?
-  player      Player? @relation("PlayerToItems", fields: [playerId], references: [id])
+
+  characterId String?
+  character   Character? @relation("CharacterToItems", fields: [characterId], references: [id])
 }

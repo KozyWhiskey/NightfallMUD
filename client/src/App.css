@@ -1,42 +1,104 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* NightfallMUD/client/src/App.css */
+
+/* Global styles for the entire page */
+body {
+  margin: 0; /* Removes default browser spacing */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.87);
+  overflow: hidden; /* Prevent accidental scrollbars */
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* The main grid container for our game UI */
+.game-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr; /* Sidebar and main content */
+  grid-template-rows: 1fr auto; /* Main content row and input row */
+  grid-template-areas:
+    "left main"
+    "input input";
+  height: 100vh; /* 100% of the viewport height */
+  width: 100vw;  /* 100% of the viewport width */
+  box-sizing: border-box; /* This makes padding and borders part of the total width/height */
+  gap: 15px;
+  padding: 15px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Panel-specific styles */
+.left-panel {
+  grid-area: left;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto; /* Allow scrolling on this panel if content is long */
 }
 
-.card {
-  padding: 2em;
+.main-panel {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent this panel from causing page scroll */
+  background-color: #242424;
+  border: 1px solid #444;
+  border-radius: 8px;
 }
 
-.read-the-docs {
-  color: #888;
+.input-area.full-width {
+  grid-area: input;
+}
+
+/* Our existing custom styles for game elements */
+.room-info {
+  padding: 15px;
+  border-bottom: 1px solid #444;
+}
+.room-info h2 { margin-top: 0; }
+.room-info p { margin: 5px 0; }
+.room-items { color: #bb86fc; } /* A different color for items */
+
+.message-log {
+  flex-grow: 1; /* Allows the log to fill available space */
+  overflow-y: auto; /* The message log itself will scroll, not the page */
+  padding: 15px;
+  font-family: 'Courier New', Courier, monospace;
+}
+.presence-message {
+  color: #a0a0a0;
+  font-style: italic;
+}
+
+.input-area {
+  display: flex;
+  gap: 10px;
+}
+.input-area input {
+  flex-grow: 1;
+  padding: 10px;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 1em;
+}
+.input-area button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #6200ee;
+  color: white;
+  cursor: pointer;
+}
+
+/* Logout button style */
+.logout-button {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 8px 16px;
+  background-color: #4a4a4a;
+  border: 1px solid #666;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  z-index: 100;
 }

@@ -1,0 +1,45 @@
+.stats-panel {
+  background-color: #242424;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  color: #e0e0e0;
+}
+.stats-panel h3, .stats-panel h4 { margin-top: 0; color: #fff; }
+.stats-panel p { margin: 5px 0; font-size: 0.9em; }
+
+.stat-bar {
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  padding: 2px;
+  border: 1px solid #555;
+  margin-bottom: 10px;
+}
+.stat-bar-inner {
+  color: white;
+  text-align: center;
+  font-size: 0.9em;
+  border-radius: 2px;
+  padding: 2px 0;
+  transition: width 0.5s ease-in-out;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+.stat-bar-inner.hp { background-color: #b30000; }
+.stat-bar-inner.mana { background-color: #004b9b; }
+
+.stat-bar-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    position: absolute;
+    margin-left: 5px;
+    margin-top: 2px;
+    color: rgba(255,255,255,0.8);
+    text-shadow: 1px 1px #000;
+    pointer-events: none;
+}
+.core-stats, .other-info {
+    border-top: 1px solid #444;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+.core-stats h4 { margin-bottom: 5px; }

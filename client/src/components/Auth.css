@@ -1,0 +1,91 @@
+/* NightfallMUD/client/src/components/Auth.css */
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.auth-form {
+  padding: 40px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.auth-form h2 {
+  margin-bottom: 24px;
+  color: #fff;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: #a0a0a0;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  box-sizing: border-box; /* Important for padding */
+}
+
+.auth-form button[type="submit"] {
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #6200ee;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.auth-form button[type="submit"]:hover {
+  background-color: #3700b3;
+}
+
+.toggle-view {
+  margin-top: 24px;
+  font-size: 0.9rem;
+}
+
+.toggle-view button {
+  background: none;
+  border: none;
+  color: #bb86fc;
+  cursor: pointer;
+  text-decoration: underline;
+  padding-left: 5px;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  color: #cf6679;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.success-message {
+  color: #03dac6;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}

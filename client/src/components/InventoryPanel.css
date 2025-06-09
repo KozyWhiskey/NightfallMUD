@@ -1,0 +1,33 @@
+.inventory-panel {
+  background-color: #242424;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+.inventory-panel h4 {
+  margin-top: 0;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.inventory-list {
+  max-height: 200px; /* Give it a max height and allow scrolling */
+  overflow-y: auto;
+}
+
+.inventory-item {
+  padding: 8px 5px;
+  border-bottom: 1px solid #333;
+  cursor: help; /* Change cursor on hover to indicate it's interactive */
+}
+
+.inventory-item:last-child {
+  border-bottom: none;
+}
+
+.empty-inventory {
+  color: #888;
+  font-style: italic;
+  font-size: 0.9em;
+}
