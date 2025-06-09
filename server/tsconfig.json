@@ -3,7 +3,7 @@
       "target": "ES2020",         // Compile to a modern JavaScript version
       "module": "commonjs",        // Use the standard module system for Node.js
       "outDir": "./dist",          // Put compiled JavaScript files in a 'dist' folder
-      "rootDir": "./src",          // Our source TypeScript files are in 'src'
+      "rootDir": ".",              // Our source TypeScript files are in the project root (including 'src' and 'prisma')
       "strict": true,              // Enable all strict type-checking options
       "esModuleInterop": true,     // Allows for cleaner imports
       "skipLibCheck": true,
