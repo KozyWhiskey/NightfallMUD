@@ -102,3 +102,40 @@ body {
   border-radius: 4px;
   z-index: 100;
 }
+
+.exit-button {
+  background: none;
+  border: none;
+  color: #bb86fc; /* A nice purple to match other interactives */
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 4px;
+  font-family: inherit; /* Inherit the font from the parent <p> tag */
+  font-size: inherit;   /* Inherit the font size */
+}
+
+.exit-button:hover {
+  color: #9e47ff;
+}
+
+.item-button {
+  background: none;
+  border: none;
+  color: #89cff0; /* A distinct light blue for items */
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 2px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.item-button:hover {
+  color: #6495ed;
+}
+
+.room-mobs {
+  color: #cf6679; 
+  font-weight: bold;
+}

@@ -1,12 +1,26 @@
 // server/src/game/world.ts
-import type { Item } from './item'; // Use a type-only import
+import type { Item } from './item';
+
+// This is not a database model, but a template for creating mobs.
+export interface MobTemplate {
+  name: string;
+  description: string;
+  level: number;
+  hp: number;
+  maxHp: number;
+  strength: number;
+  defense: number;
+  experienceAward: number;
+  goldAward: number;
+}
 
 export interface Room {
   id: string;
   name: string;
   description: string;
   exits: { [direction: string]: string };
-  items: Item[]; // <-- ADDED
+  items: Item[];
+  mobTemplates: MobTemplate[]; // <-- ADDED
 }
 
 export const world: { [id: string]: Room } = {
@@ -18,9 +32,13 @@ export const world: { [id: string]: Room } = {
       north: 'room-2',
       east: 'room-3',
     },
-    // --- ADDED ---
     items: [
       { id: 'item-1', name: 'rusty sword', description: 'A simple sword, pitted with rust.' }
+    ],
+    // --- ADDED MOBS ---
+    mobTemplates: [
+      { name: 'Giant Rat', description: 'A filthy, oversized rodent with sharp teeth.', level: 1, hp: 5, maxHp: 5, strength: 1, defense: 0, experienceAward: 2, goldAward: 1 },
+      { name: 'Giant Rat', description: 'A filthy, oversized rodent with sharp teeth.', level: 1, hp: 5, maxHp: 5, strength: 1, defense: 0, experienceAward: 2, goldAward: 1 },
     ],
   },
   'room-2': {
@@ -30,7 +48,8 @@ export const world: { [id: string]: Room } = {
     exits: {
       south: 'room-1',
     },
-    items: [], // <-- ADDED
+    items: [],
+    mobTemplates: [], // <-- ADDED
   },
   'room-3': {
     id: 'room-3',
@@ -39,6 +58,7 @@ export const world: { [id: string]: Room } = {
     exits: {
       west: 'room-1',
     },
-    items: [], // <-- ADDED
+    items: [],
+    mobTemplates: [], // <-- ADDED
   },
 };

@@ -9,39 +9,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// NEW: Account Model - Handles login and user identity
 model Account {
-  id        String      @id @default(cuid())
-  username  String      @unique
-  password  String
-
-  // Relation: An account can have multiple characters
+  id         String      @id @default(cuid())
+  username   String      @unique
+  password   String
   characters Character[]
 }
 
-// NEW: Character Model - This is the player's in-game avatar with all stats
+// In prisma/schema.prisma
+
 model Character {
   id            String @id @default(cuid())
-  name          String @unique // Character's name
+  name          String @unique
 
-  // Relation to Account
   accountId     String
   account       Account @relation(fields: [accountId], references: [id])
 
-  // Stats
   level         Int    @default(1)
   experience    Int    @default(0)
   gold          Int    @default(10)
+
+  // Core Attributes
   strength      Int    @default(5)
   dexterity     Int    @default(5)
   constitution  Int    @default(5)
   intelligence  Int    @default(5)
   wisdom        Int    @default(5)
   charisma      Int    @default(5)
+
+  // Vitals
   hp            Int    @default(10)
   maxHp         Int    @default(10)
   mana          Int    @default(5)
   maxMana       Int    @default(5)
+  defense       Int    @default(1) // <-- ADD THIS LINE
 
   // Game State
   currentRoomId String
@@ -54,21 +55,43 @@ model Room {
   name        String
   description String
   exits       Json
-
-  // Relation to Characters
   characters  Character[] @relation("RoomToCharacters")
   items       Item[]      @relation("RoomToItems")
+
+  // --- NEW RELATION ---
+  // A Room can have many Mobs
+  mobs        Mob[]       @relation("RoomToMobs")
 }
 
 model Item {
-  id          String  @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   description String
-
-  // An item can be in a room OR in a character's inventory
   roomId      String?
-  room        Room?   @relation("RoomToItems", fields: [roomId], references: [id])
-
+  room        Room?      @relation("RoomToItems", fields: [roomId], references: [id])
   characterId String?
   character   Character? @relation("CharacterToItems", fields: [characterId], references: [id])
+}
+
+// --- NEW MODEL ---
+// Defines a Mob (monster/NPC) in the game
+model Mob {
+  id                String  @id @default(cuid())
+  name              String
+  description       String
+
+  // Stats
+  level             Int     @default(1)
+  hp                Int
+  maxHp             Int
+  strength          Int
+  defense           Int
+
+  // Rewards
+  experienceAward   Int
+  goldAward         Int
+
+  // Location
+  roomId            String
+  room              Room    @relation("RoomToMobs", fields: [roomId], references: [id])
 }

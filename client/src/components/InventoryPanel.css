@@ -4,30 +4,38 @@
   border-radius: 4px;
   border: 1px solid #444;
 }
-
-.inventory-panel h4 {
-  margin-top: 0;
-  border-bottom: 1px solid #444;
-  padding-bottom: 10px;
-}
-
-.inventory-list {
-  max-height: 200px; /* Give it a max height and allow scrolling */
-  overflow-y: auto;
-}
+.inventory-panel h4 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+.inventory-list { max-height: 200px; overflow-y: auto; }
 
 .inventory-item {
   padding: 8px 5px;
-  border-bottom: 1px solid #333;
-  cursor: help; /* Change cursor on hover to indicate it's interactive */
+  cursor: pointer; /* The item name itself is clickable */
+  border-radius: 3px;
+}
+.inventory-item.selected, .inventory-item:hover {
+  background-color: #3a3a3a;
 }
 
-.inventory-item:last-child {
-  border-bottom: none;
+.item-actions {
+  display: flex;
+  gap: 5px;
+  padding: 8px 5px;
+  background-color: #3a3a3a;
+  border-radius: 3px;
+  margin-top: -5px; /* Pull it closer to the item name */
+  margin-bottom: 5px;
+}
+.item-actions button {
+  background-color: #4f4f4f;
+  border: 1px solid #666;
+  color: #ddd;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8em;
+}
+.item-actions button:hover {
+  background-color: #5f5f5f;
 }
 
-.empty-inventory {
-  color: #888;
-  font-style: italic;
-  font-size: 0.9em;
-}
+.empty-inventory { color: #888; font-style: italic; font-size: 0.9em; }

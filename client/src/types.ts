@@ -22,3 +22,11 @@ export interface Item {
     name: string;
     description: string;
 }
+
+export interface Mob {
+  id: string;
+  name: string;
+  description: string;
+  hp: number;
+  maxHp: number;
+}
