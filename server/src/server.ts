@@ -6,8 +6,9 @@ import cors from 'cors';
 import url from 'url';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Class } from '@prisma/client';
 import { GameEngine, Command, GameEvent } from './game/gameEngine';
+import { startingClassData } from './game/class.data';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -19,10 +20,37 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) throw new Error("JWT_SECRET not defined!");
 
 const prisma = new PrismaClient();
-const game = new GameEngine();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173", optionsSuccessStatus: 200 }));
 app.use(express.json());
+
+// --- WEBSOCKET AND GAME LOGIC (Needs to be defined before GameEngine is created) ---
+const characterSockets: Map<string, WebSocket> = new Map();
+
+// This function needs to be declared before it's passed to the GameEngine constructor.
+async function processAndSendEvents(events: GameEvent[]) {
+  for (const event of events) {
+    const targetSocket = characterSockets.get(event.target);
+    if (targetSocket?.readyState === WebSocket.OPEN) {
+      targetSocket.send(JSON.stringify({ type: event.type, payload: event.payload }));
+    } else if (event.target === 'room') {
+      // Defensive check for payload
+      if (!event.payload || typeof event.payload.roomId !== 'string') continue;
+      
+      const charactersInRoom = await game.getCharactersInRoom(event.payload.roomId, event.payload.exclude?.[0]);
+      charactersInRoom.forEach(c => {
+        const charSocket = characterSockets.get(c.id);
+        if (charSocket?.readyState === WebSocket.OPEN) {
+          charSocket.send(JSON.stringify({ type: 'message', payload: { message: event.payload.message } }));
+        }
+      });
+    }
+  }
+};
+
+// Create a single instance of the game engine and pass the broadcast function
+const game = new GameEngine(processAndSendEvents);
+
 
 // --- AUTHENTICATION MIDDLEWARE ---
 export interface AuthenticatedRequest extends Request {
@@ -42,7 +70,6 @@ const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunc
 };
 
 // --- API ROUTES ---
-
 // AUTH: Register
 app.post('/api/auth/register', async (req: Request, res: Response) => {
   const { username, password } = req.body;
@@ -53,7 +80,6 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
     res.status(201).json({ message: 'Account created.', accountId: account.id });
   } catch (error: any) {
     if (error.code === 'P2002') return res.status(409).json({ message: 'Username already exists.' });
-    console.error(error);
     res.status(500).json({ message: 'Registration error.' });
   }
 });
@@ -70,7 +96,6 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     const token = jwt.sign({ accountId: account.id, username: account.username }, JWT_SECRET, { expiresIn: '24h' });
     res.status(200).json({ message: 'Login successful', token });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Login error.' });
   }
 });
@@ -89,17 +114,18 @@ app.get('/api/characters', authMiddleware, async (req: AuthenticatedRequest, res
 // CHARACTERS: Create new
 app.post('/api/characters', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Not authorized.' });
-  const { name } = req.body;
-  if (!name) return res.status(400).json({ message: 'Character name is required.' });
-
+  const { name, characterClass } = req.body;
+  if (!name || !characterClass) return res.status(400).json({ message: 'Character name and class are required.' });
+  if (!Object.values(Class).includes(characterClass)) return res.status(400).json({ message: 'Invalid class.' });
+  const classData = startingClassData[characterClass as Class];
+  if (!classData) return res.status(500).json({ message: 'Class data not found.' });
   try {
     const newCharacter = await prisma.character.create({
-      data: { name, accountId: req.user.accountId, currentRoomId: 'room-1' },
+      data: { name, class: characterClass, accountId: req.user.accountId, currentRoomId: 'room-1', ...classData.stats },
     });
     res.status(201).json(newCharacter);
   } catch (error: any) {
     if (error.code === 'P2002') return res.status(409).json({ message: 'Character name already exists.' });
-    console.error("Error creating character:", error);
     res.status(500).json({ message: 'Internal error creating character.' });
   }
 });
@@ -107,25 +133,6 @@ app.post('/api/characters', authMiddleware, async (req: AuthenticatedRequest, re
 // --- WEBSOCKET SERVER ---
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-const characterSockets: Map<string, WebSocket> = new Map();
-
-// ... (processAndSendEvents and wss.on('connection') logic can remain the same as the last correct version)
-const processAndSendEvents = async (events: GameEvent[]) => {
-  for (const event of events) {
-    const targetSocket = characterSockets.get(event.target);
-    if (targetSocket?.readyState === WebSocket.OPEN) {
-      targetSocket.send(JSON.stringify({ type: event.type, payload: event.payload }));
-    } else if (event.target === 'room') {
-      const charactersInRoom = await game.getCharactersInRoom(event.payload.roomId, event.payload.exclude?.[0]);
-      charactersInRoom.forEach(c => {
-        const charSocket = characterSockets.get(c.id);
-        if (charSocket?.readyState === WebSocket.OPEN) {
-          charSocket.send(JSON.stringify({ type: 'message', payload: { message: event.payload.message } }));
-        }
-      });
-    }
-  }
-};
 
 wss.on('connection', async (ws: WebSocket, req) => {
   let accountId = '';
@@ -147,8 +154,9 @@ wss.on('connection', async (ws: WebSocket, req) => {
       const command: Command = JSON.parse(messageStr.toString());
       if (!characterId && command.action === 'selectCharacter') {
         const selectedCharId = command.payload;
-        // TODO: Verify this character belongs to the authenticated account
-        characterId = selectedCharId;
+        const character = await prisma.character.findFirst({ where: { id: selectedCharId, accountId: accountId }});
+        if (!character) throw new Error('Character not found or does not belong to this account.');
+        characterId = character.id;
         characterSockets.set(characterId, ws);
         console.log(`🎮 Character ${characterId} selected for gameplay.`);
         const initialEvents = await game.handleCharacterConnect(characterId);
@@ -157,7 +165,10 @@ wss.on('connection', async (ws: WebSocket, req) => {
         const responseEvents = await game.processCommand(characterId, command);
         await processAndSendEvents(responseEvents);
       }
-    } catch (error) { console.error(`Error processing command:`, error); }
+    } catch (error: any) { 
+      console.error(`Error processing command:`, error);
+      ws.send(JSON.stringify({ type: 'message', payload: { message: `Error: ${error.message}` }}));
+    }
   });
 
   ws.on('close', async () => {

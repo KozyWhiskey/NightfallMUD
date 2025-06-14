@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { CharacterCreate } from './CharacterCreate';
 import './CharacterSelect.css';
 
-// A simple type for our character list
 interface CharacterSummary {
   id: string;
   name: string;
@@ -12,10 +11,11 @@ interface CharacterSummary {
 
 interface CharacterSelectProps {
   token: string;
-  onCharacterSelect: (characterId: string) => void; // Callback to tell App which character was chosen
+  onCharacterSelect: (characterId: string) => void;
+  onLogout: () => void; // Add this prop
 }
 
-export function CharacterSelect({ token, onCharacterSelect }: CharacterSelectProps) {
+export function CharacterSelect({ token, onCharacterSelect, onLogout }: CharacterSelectProps) {
   const [characters, setCharacters] = useState<CharacterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,9 +25,7 @@ export function CharacterSelect({ token, onCharacterSelect }: CharacterSelectPro
     setError('');
     try {
       const response = await fetch('/api/characters', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Failed to fetch characters.');
       const data = await response.json();
@@ -54,16 +52,23 @@ export function CharacterSelect({ token, onCharacterSelect }: CharacterSelectPro
   return (
     <div className="character-select-container">
       <div className="character-select-box">
+        {/* We can add a logout button here as well for consistency */}
+        <button onClick={onLogout} className="logout-button-alt">Logout</button>
         <h1>Select a Character</h1>
         {characters.length > 0 ? (
-          <ul className="character-list">
-            {characters.map(char => (
-              <li key={char.id} onClick={() => onCharacterSelect(char.id)}>
-                <span className="char-name">{char.name}</span>
-                <span className="char-level">Level {char.level}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="character-list">
+              {characters.map(char => (
+                <li key={char.id} onClick={() => onCharacterSelect(char.id)}>
+                  <span className="char-name">{char.name}</span>
+                  <span className="char-level">Level {char.level}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="character-create">
+              <CharacterCreate token={token} onCharacterCreated={fetchCharacters} />
+            </div>
+          </>
         ) : (
           <CharacterCreate token={token} onCharacterCreated={fetchCharacters} />
         )}

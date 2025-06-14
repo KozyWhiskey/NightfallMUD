@@ -1,177 +1,149 @@
 // server/src/game/gameEngine.ts
 
 import { PrismaClient } from '@prisma/client';
-import type { Character, Room, Item } from '@prisma/client';
+import type { Character } from '@prisma/client';
+import { ICommandHandler, CommandHandlerContext } from './commands/command.interface';
+import { CombatManager } from './combat.manager';
+
+// --- Import all command handlers ---
+import { LookCommand } from './commands/look.command';
+import { MoveCommand } from './commands/move.command';
+import { SayCommand } from './commands/say.command';
+import { InventoryCommand } from './commands/inventory.command';
+import { GetCommand } from './commands/get.command';
+import { DropCommand } from './commands/drop.command';
+import { ExamineCommand } from './commands/examine.command';
+import { AttackCommand } from './commands/attack.command';
+import { AssignStatsCommand } from './commands/assignStats.command';
+import { EquipCommand } from './commands/equip.command';
+import { UnequipCommand } from './commands/unequip.command';
 
 export interface Command { action: string; payload?: any; }
 export interface GameEvent { target: string; type: 'gameUpdate' | 'message'; payload: any; }
 
 export class GameEngine {
   private prisma = new PrismaClient();
-  private startingRoomId = 'room-1';
+  private commandRegistry: Map<string, ICommandHandler> = new Map();
+  public combatManager: CombatManager;
 
-  // --- Main Public Methods ---
-
-  async handleCharacterConnect(characterId: string): Promise<GameEvent[]> {
-    // This function will now use our new helper
-    const event = await this._createFullGameUpdateEvent(characterId, `Welcome back!`);
-    
-    const arrivalAnnouncement: GameEvent = {
-      target: 'room',
-      type: 'message',
-      payload: { message: `${event.payload.player.username} has connected.`, roomId: event.payload.room.id, exclude: [characterId] },
-    };
-
-    return [arrivalAnnouncement, event];
+  constructor(broadcastCallback: (events: GameEvent[]) => void) {
+    this.combatManager = new CombatManager(
+      broadcastCallback,
+      this._handleLevelUpCheck.bind(this)
+    );
+    this.registerCommands();
   }
 
-  async handleCharacterDisconnect(characterId: string): Promise<GameEvent | null> {
-    const character = await this.prisma.character.findUnique({ where: { id: characterId } });
-    if (!character) return null;
-    return {
-      target: 'room',
-      type: 'message',
-      payload: { message: `${character.name} has disconnected.`, roomId: character.currentRoomId, exclude: [] },
-    };
+  private registerCommands() {
+    this.commandRegistry.set('look', new LookCommand());
+    this.commandRegistry.set('move', new MoveCommand());
+    this.commandRegistry.set('say', new SayCommand());
+    this.commandRegistry.set('inventory', new InventoryCommand());
+    this.commandRegistry.set('i', new InventoryCommand());
+    this.commandRegistry.set('get', new GetCommand());
+    this.commandRegistry.set('drop', new DropCommand());
+    this.commandRegistry.set('examine', new ExamineCommand());
+    this.commandRegistry.set('attack', new AttackCommand());
+    this.commandRegistry.set('assignStats', new AssignStatsCommand());
+    this.commandRegistry.set('equip', new EquipCommand());
+    this.commandRegistry.set('unequip', new UnequipCommand());
   }
-
- // Replace the existing processCommand function in gameEngine.ts with this one.
 
   async processCommand(characterId: string, command: Command): Promise<GameEvent[]> {
-    const character = await this.prisma.character.findUnique({
-      where: { id: characterId },
-      include: { room: true, inventory: true },
-    });
-    if (!character || !character.room) return [];
+    const handler = this.commandRegistry.get(command.action.toLowerCase());
 
-    let events: GameEvent[] = [];
-    const currentRoom = character.room;
-
-    switch (command.action) {
-      // ... your existing cases like look, move, say, etc. ...
-      
-      // --- NEW: ATTACK COMMAND ---
-      case 'attack': {
-        const targetName = command.payload;
-        if (!targetName) {
-          events.push({ target: characterId, type: 'message', payload: { message: "Attack what?" } });
-          break;
-        }
-
-        // Find the first mob in the room that matches the target name
-        const targetMob = await this.prisma.mob.findFirst({
-          where: { name: { equals: targetName, mode: 'insensitive' }, roomId: currentRoom.id }
-        });
-
-        if (!targetMob) {
-          events.push({ target: characterId, type: 'message', payload: { message: "You don't see that here." } });
-          break;
-        }
-
-        // --- COMBAT LOGIC ---
-
-        // 1. Player attacks Mob
-        const playerDamage = Math.max(1, character.strength - targetMob.defense);
-        const mobNewHp = targetMob.hp - playerDamage;
-        
-        // Announce player's attack
-        const playerAttackMessage = `You attack the ${targetMob.name} for ${playerDamage} damage!`;
-        events.push({ target: characterId, type: 'message', payload: { message: playerAttackMessage }});
-        events.push({ target: 'room', type: 'message', payload: { roomId: currentRoom.id, message: `${character.name} attacks the ${targetMob.name}.`, exclude: [characterId] }});
-
-        // 2. Check if Mob is defeated
-        if (mobNewHp <= 0) {
-          // Announce victory
-          events.push({ target: 'room', type: 'message', payload: { roomId: currentRoom.id, message: `The ${targetMob.name} has been defeated!`, exclude: [] }});
-          
-          // Delete the mob from the database
-          await this.prisma.mob.delete({ where: { id: targetMob.id }});
-
-          // Grant rewards to the player
-          await this.prisma.character.update({
-            where: { id: characterId },
-            data: {
-              experience: { increment: targetMob.experienceAward },
-              gold: { increment: targetMob.goldAward },
-            }
-          });
-
-          // Send a final, full game state update to the player
-          events.push(await this._createFullGameUpdateEvent(characterId, `You gained ${targetMob.experienceAward} XP and ${targetMob.goldAward} gold.`));
-          break; // End combat
-        }
-
-        // 3. If Mob survived, it attacks back
-        const mobDamage = Math.max(1, targetMob.strength - character.defense);
-        const characterNewHp = character.hp - mobDamage;
-
-        // Announce mob's attack
-        const mobAttackMessage = `The ${targetMob.name} attacks you for ${mobDamage} damage!`;
-        events.push({ target: characterId, type: 'message', payload: { message: mobAttackMessage }});
-        events.push({ target: 'room', type: 'message', payload: { roomId: currentRoom.id, message: `The ${targetMob.name} attacks ${character.name}.`, exclude: [characterId] }});
-
-        // 4. Check if Player is defeated
-        if (characterNewHp <= 0) {
-          // For now, just send a message. In a real game, this would handle death, respawning, etc.
-          events.push({ target: 'room', type: 'message', payload: { roomId: currentRoom.id, message: `${character.name} has been defeated!`, exclude: [] }});
-          // Reset player's HP for now
-          await this.prisma.character.update({ where: { id: characterId }, data: { hp: character.maxHp }});
-          // TODO: Add real death logic (e.g., move to a "spirit realm" room, lose XP, etc.)
-        }
-
-        // 5. If both survived, update both their HP in the database
-        await this.prisma.mob.update({ where: { id: targetMob.id }, data: { hp: mobNewHp }});
-        await this.prisma.character.update({ where: { id: characterId }, data: { hp: characterNewHp }});
-
-        // Send a final game state update to the player
-        events.push(await this._createFullGameUpdateEvent(characterId, 'The battle continues...'));
-        break;
-      }
-
-
-      default:
-        events.push({ target: characterId, type: 'message', payload: { message: 'Unknown command.' } });
-        break;
-    }
-    return events;
-  }
-  
-  // --- Private Helper Methods ---
-
-  // NEW HELPER FUNCTION to gather all state for a player
-  private async _createFullGameUpdateEvent(characterId: string, message: string): Promise<GameEvent> {
+    if (handler) {
       const character = await this.prisma.character.findUnique({
         where: { id: characterId },
         include: { room: true, inventory: true },
       });
+      if (!character) return [];
 
-      if (!character || !character.room) {
-        throw new Error(`Could not create game update for character ${characterId}.`);
-      }
-
-      const playersInRoom = await this.getCharactersInRoom(character.currentRoomId, characterId);
-      const itemsInRoom = await this.prisma.item.findMany({ where: { roomId: character.currentRoomId }});
-      // --- NEW: Query for mobs in the room ---
-      const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
-
-      return {
-        target: characterId,
-        type: 'gameUpdate',
-        payload: {
-          message: message,
-          player: character,
-          room: character.room,
-          players: playersInRoom.map(p => p.name),
-          roomItems: itemsInRoom,
-          inventory: character.inventory,
-          mobs: mobsInRoom, // <-- ADDED: Include the mobs in the payload
-        },
+      const context: CommandHandlerContext = {
+        prisma: this.prisma,
+        combatManager: this.combatManager,
+        getCharactersInRoom: this.getCharactersInRoom.bind(this),
+        createFullGameUpdateEvent: this.createFullGameUpdateEvent.bind(this),
       };
+
+      return handler.execute(character, command, context);
     }
 
-  public async getCharactersInRoom(roomId: string, excludeCharacterId?: string): Promise<Character[]> {
+    return [{ target: characterId, type: 'message', payload: { message: 'Unknown command.' } }];
+  }
+  
+  // --- Public Helper & Connection Methods ---
+  
+  public async createFullGameUpdateEvent(characterId: string, message: string): Promise<GameEvent> {
+    const character = await this.prisma.character.findUnique({ where: { id: characterId }, include: { room: true, inventory: true } });
+    if (!character || !character.room) throw new Error(`Could not create game update for character ${characterId}.`);
+    
+    const playersInRoom = await this.getCharactersInRoom(character.currentRoomId, characterId);
+    const itemsInRoom = await this.prisma.item.findMany({ where: { roomId: character.currentRoomId }});
+    const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
+
+    return {
+      target: characterId, type: 'gameUpdate',
+      payload: { message, player: character, room: character.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: character.inventory, mobs: mobsInRoom, },
+    };
+  }
+
+  public async getCharactersInRoom(roomId: string, excludeCharacterId?: string) {
     return this.prisma.character.findMany({
       where: { currentRoomId: roomId, id: { not: excludeCharacterId } },
+      include: { room: true, inventory: true },
     });
+  }
+
+  public async handleCharacterConnect(characterId: string): Promise<GameEvent[]> {
+    let character = await this.prisma.character.findUnique({ where: { id: characterId }, include: { room: true, inventory: true } });
+    if (!character || !character.room) throw new Error(`Character ${characterId} not found.`);
+    
+    // --- NEW: Check for aggression on connect ---
+    const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
+    await this.combatManager.checkForAggression(character, mobsInRoom);
+
+    const event = await this.createFullGameUpdateEvent(characterId, `Welcome back, ${character.name}!`);
+    const arrivalAnnouncement: GameEvent = { target: 'room', type: 'message', payload: { message: `${character.name} has connected.`, roomId: character.room.id, exclude: [characterId] } };
+    return [arrivalAnnouncement, event];
+  }
+
+  public async handleCharacterDisconnect(characterId: string): Promise<GameEvent | null> {
+    const character = await this.prisma.character.findUnique({ where: { id: characterId } });
+    if (!character) return null;
+    this.combatManager.removeCharacterFromCombat(character.id);
+    return { target: 'room', type: 'message', payload: { message: `${character.name} has disconnected.`, roomId: character.currentRoomId, exclude: [] } };
+  }
+
+  private async _handleLevelUpCheck(character: Character): Promise<GameEvent[]> {
+    const events: GameEvent[] = [];
+    let currentCharacterState = character;
+    let canLevelUp = currentCharacterState.experience >= currentCharacterState.experienceToNextLevel;
+
+    while (canLevelUp) {
+      const leftoverXp = currentCharacterState.experience - currentCharacterState.experienceToNextLevel;
+      const newLevel = currentCharacterState.level + 1;
+      const newXpToNextLevel = newLevel * 10;
+      const newMaxHp = currentCharacterState.maxHp + 5;
+
+      currentCharacterState = await this.prisma.character.update({
+        where: { id: character.id },
+        data: {
+          level: newLevel,
+          experience: leftoverXp,
+          experienceToNextLevel: newXpToNextLevel,
+          unspentStatPoints: { increment: 2 },
+          maxHp: newMaxHp,
+          hp: newMaxHp,
+          mana: currentCharacterState.maxMana,
+        },
+      });
+      
+      const levelUpMessage = `***********************************\n* DING! You are now ready for LEVEL ${newLevel}! *\n***********************************\nYour Max HP increases to ${newMaxHp}.\nYou have gained 2 points to assign to your attributes.`;
+      events.push({ target: character.id, type: 'message', payload: { message: levelUpMessage }});
+      
+      canLevelUp = currentCharacterState.experience >= currentCharacterState.experienceToNextLevel;
+    }
+    return events;
   }
 }

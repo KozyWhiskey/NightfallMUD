@@ -1,10 +1,11 @@
 // server/src/game/world.ts
-import type { Item } from './item';
+import { EquipSlot, Hostility } from '@prisma/client'; // Import Hostility Enum
 
-// This is not a database model, but a template for creating mobs.
+// --- UPDATED: MobTemplate now includes hostility ---
 export interface MobTemplate {
   name: string;
   description: string;
+  hostility: Hostility; // <-- ADDED
   level: number;
   hp: number;
   maxHp: number;
@@ -14,51 +15,74 @@ export interface MobTemplate {
   goldAward: number;
 }
 
-export interface Room {
+export interface ItemTemplate {
+  id: string;
+  name: string;
+  description: string;
+  weight: number;
+  slot: EquipSlot;
+  attributes: Record<string, any>;
+}
+
+export interface RoomTemplate {
   id: string;
   name: string;
   description: string;
   exits: { [direction: string]: string };
-  items: Item[];
-  mobTemplates: MobTemplate[]; // <-- ADDED
+  items: ItemTemplate[];
+  mobTemplates: MobTemplate[];
 }
 
-export const world: { [id: string]: Room } = {
+export const world: { [id: string]: RoomTemplate } = {
   'room-1': {
     id: 'room-1',
     name: 'The Town Square',
-    description: 'You are standing in the bustling town square. Cobblestone paths lead away in all directions. In the center, a large fountain gurgles peacefully.',
-    exits: {
-      north: 'room-2',
-      east: 'room-3',
-    },
+    description: 'You are standing in the bustling town square...',
+    exits: { north: 'room-2', east: 'room-3' },
     items: [
-      { id: 'item-1', name: 'rusty sword', description: 'A simple sword, pitted with rust.' }
+      { id: 'item-1', name: 'rusty sword', description: 'A simple sword...', weight: 5.0, slot: EquipSlot.WEAPON_MAIN, attributes: { "damage": 2 } }
     ],
-    // --- ADDED MOBS ---
     mobTemplates: [
-      { name: 'Giant Rat', description: 'A filthy, oversized rodent with sharp teeth.', level: 1, hp: 5, maxHp: 5, strength: 1, defense: 0, experienceAward: 2, goldAward: 1 },
-      { name: 'Giant Rat', description: 'A filthy, oversized rodent with sharp teeth.', level: 1, hp: 5, maxHp: 5, strength: 1, defense: 0, experienceAward: 2, goldAward: 1 },
+      // --- UPDATED: Giant Rat is now explicitly HOSTILE ---
+      { 
+        name: 'Giant Rat', 
+        description: 'A filthy, oversized rodent with sharp teeth.', 
+        hostility: Hostility.HOSTILE, // <-- ADDED
+        level: 1, 
+        hp: 5, 
+        maxHp: 5, 
+        strength: 1, 
+        defense: 0, 
+        experienceAward: 2, 
+        goldAward: 1 
+      },
     ],
   },
   'room-2': {
     id: 'room-2',
     name: 'The North Road',
-    description: 'You are on a dusty road leading north out of town. The town square is to the south. A dense forest looms to the north.',
-    exits: {
-      south: 'room-1',
-    },
+    description: 'You are on a dusty road...',
+    exits: { south: 'room-1' },
     items: [],
-    mobTemplates: [], // <-- ADDED
+    mobTemplates: [],
   },
   'room-3': {
     id: 'room-3',
     name: 'The Armory',
-    description: 'You stand inside the town armory. Racks of swords and shields line the walls. The exit is to the west.',
-    exits: {
-      west: 'room-1',
-    },
+    description: 'You stand inside the town armory...',
+    exits: { west: 'room-1' },
     items: [],
-    mobTemplates: [], // <-- ADDED
+    // Add a friendly NPC for demonstration
+    mobTemplates: [
+        {
+            name: 'Barnaby',
+            description: 'The friendly town blacksmith. He smiles warmly as you approach.',
+            hostility: Hostility.FRIENDLY, // <-- ADDED
+            level: 10,
+            hp: 100, maxHp: 100,
+            strength: 10, defense: 10,
+            experienceAward: 0, goldAward: 0
+        }
+    ],
   },
 };

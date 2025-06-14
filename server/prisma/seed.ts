@@ -1,4 +1,4 @@
-// NightfallMUD/server/prisma/seed.ts
+// server/prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
 import { world } from '../src/game/world';
 
@@ -10,12 +10,12 @@ async function main() {
   // --- DELETION IN CORRECT ORDER ---
   console.log('Clearing existing data...');
   await prisma.item.deleteMany();
-  await prisma.mob.deleteMany(); // <-- ADDED MOB
+  await prisma.mob.deleteMany();
   await prisma.character.deleteMany();
   await prisma.account.deleteMany();
   await prisma.room.deleteMany();
   console.log('Existing data cleared.');
-
+  
   // --- CREATION ---
   console.log('Seeding rooms, items, and mobs...');
   for (const roomData of Object.values(world)) {
@@ -33,17 +33,20 @@ async function main() {
     // Create items in the room
     if (roomData.items.length > 0) {
       await prisma.item.createMany({
-        data: roomData.items.map(item => ({ ...item, roomId: room.id })),
+        data: roomData.items.map(item => ({
+          ...item,
+          roomId: room.id,
+        })),
       });
       console.log(`Created ${roomData.items.length} item(s) in ${room.name}`);
     }
 
-    // --- NEW: Create mobs in the room ---
+    // Create mobs in the room
     if (roomData.mobTemplates.length > 0) {
       await prisma.mob.createMany({
         data: roomData.mobTemplates.map(mobTemplate => ({
-          ...mobTemplate,
-          roomId: room.id, // Link each mob to the created room
+          ...mobTemplate, // This will correctly include the new `hostility` field
+          roomId: room.id,
         })),
       });
       console.log(`Spawned ${roomData.mobTemplates.length} mob(s) in ${room.name}`);

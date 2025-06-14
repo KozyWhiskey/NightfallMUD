@@ -1,43 +1,47 @@
-/* NightfallMUD/client/src/App.css */
+/* client/src/App.css */
 
-/* Global styles for the entire page */
-body {
-  margin: 0; /* Removes default browser spacing */
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background-color: #1a1a1a;
-  color: rgba(255, 255, 255, 0.87);
-  overflow: hidden; /* Prevent accidental scrollbars */
+/* Main content area below the fixed header */
+.app-content {
+  padding-top: 50px;
+  height: 100vh;
+  box-sizing: border-box;
 }
 
-/* The main grid container for our game UI */
+/* The main three-column grid container for our game UI */
 .game-layout {
   display: grid;
-  grid-template-columns: 280px 1fr; /* Sidebar and main content */
-  grid-template-rows: 1fr auto; /* Main content row and input row */
+  grid-template-columns: 320px 1fr 320px;
+  grid-template-rows: 1fr auto;
   grid-template-areas:
-    "left main"
-    "input input";
-  height: 100vh; /* 100% of the viewport height */
-  width: 100vw;  /* 100% of the viewport width */
-  box-sizing: border-box; /* This makes padding and borders part of the total width/height */
-  gap: 15px;
-  padding: 15px;
+    "left main right"
+    "input input input";
+  height: 100%; 
+  width: 100%;
+  box-sizing: border-box;
+  gap: 12px;
+  padding: 12px;
 }
 
 /* Panel-specific styles */
-.left-panel {
-  grid-area: left;
+.side-panel {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  overflow-y: auto; /* Allow scrolling on this panel if content is long */
+  overflow: hidden;
+  flex-grow: 1;
+}
+.left-panel { grid-area: left; }
+.right-panel-container { 
+  grid-area: right; 
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .main-panel {
   grid-area: main;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevent this panel from causing page scroll */
+  overflow: hidden;
   background-color: #242424;
   border: 1px solid #444;
   border-radius: 8px;
@@ -47,26 +51,62 @@ body {
   grid-area: input;
 }
 
-/* Our existing custom styles for game elements */
+/* Room and Log specific styles */
 .room-info {
-  padding: 15px;
+  padding: 12px;
   border-bottom: 1px solid #444;
 }
-.room-info h2 { margin-top: 0; }
-.room-info p { margin: 5px 0; }
-.room-items { color: #bb86fc; } /* A different color for items */
+.room-info h2 { margin-top: 0; font-size: 1.4rem; }
+.room-info p { margin: 4px 0; font-size: 0.95rem; }
 
 .message-log {
-  flex-grow: 1; /* Allows the log to fill available space */
-  overflow-y: auto; /* The message log itself will scroll, not the page */
-  padding: 15px;
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 12px;
   font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
 }
+
+.message-log > div {
+  padding: 2px 0;
+  line-height: 1.3;
+}
+
+/* Styles for different types of text */
 .presence-message {
   color: #a0a0a0;
   font-style: italic;
 }
+.damage-dealt {
+  color: #ffc107;
+  font-weight: bold;
+}
+.damage-taken {
+  color: #f44336;
+  font-weight: bold;
+}
+.room-mobs { font-weight: bold; }
+.room-items { color: #bb86fc; }
 
+/* Styles for all interactive buttons in the room description */
+.exit-button, .item-button, .mob-button {
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 2px;
+  font-family: inherit;
+  font-size: inherit;
+}
+.exit-button { color: #89cff0; }
+.exit-button:hover { color: #6495ed; }
+.item-button { color: #bb86fc; }
+.item-button:hover { color: #9e47ff; }
+.mob-button { color: #cf6679; font-weight: bold; }
+.mob-button:hover { color: #ff8095; }
+
+/* Styles for the main command input area */
 .input-area {
   display: flex;
   gap: 10px;
@@ -88,54 +128,28 @@ body {
   color: white;
   cursor: pointer;
 }
-
-/* Logout button style */
-.logout-button {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  padding: 8px 16px;
-  background-color: #4a4a4a;
-  border: 1px solid #666;
-  color: white;
-  cursor: pointer;
-  border-radius: 4px;
-  z-index: 100;
-}
-
-.exit-button {
+.mob-button {
   background: none;
   border: none;
-  color: #bb86fc; /* A nice purple to match other interactives */
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
-  margin: 0 4px;
-  font-family: inherit; /* Inherit the font from the parent <p> tag */
-  font-size: inherit;   /* Inherit the font size */
-}
-
-.exit-button:hover {
-  color: #9e47ff;
-}
-
-.item-button {
-  background: none;
-  border: none;
-  color: #89cff0; /* A distinct light blue for items */
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
   margin: 0 2px;
   font-family: inherit;
   font-size: inherit;
-}
-
-.item-button:hover {
-  color: #6495ed;
-}
-
-.room-mobs {
-  color: #cf6679; 
   font-weight: bold;
+}
+
+/* Specific colors for hostility */
+.mob-button.mob-hostile { color: #cf6679; } /* Red */
+.mob-button.mob-hostile:hover { color: #ff8095; }
+
+.mob-button.mob-neutral { color: #fff; } /* White */
+.mob-button.mob-neutral:hover { color: #eee; }
+
+.mob-button.mob-friendly { color: #69f0ae; } /* Green */
+/* We make friendly mobs not look clickable */
+.mob-button.mob-friendly {
+  text-decoration: none;
+  cursor: default;
 }

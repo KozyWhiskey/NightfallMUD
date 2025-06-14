@@ -1,3 +1,5 @@
+/* client/src/components/StatsPanel.css */
+
 .stats-panel {
   background-color: #242424;
   padding: 15px;
@@ -8,38 +10,62 @@
 .stats-panel h3, .stats-panel h4 { margin-top: 0; color: #fff; }
 .stats-panel p { margin: 5px 0; font-size: 0.9em; }
 
+/* --- THIS IS THE CORRECTED SECTION --- */
 .stat-bar {
   background-color: #1a1a1a;
   border-radius: 4px;
-  padding: 2px;
   border: 1px solid #555;
   margin-bottom: 10px;
+  position: relative; /* This is the anchor for our layers */
+  height: 22px;
+  box-sizing: border-box;
 }
-.stat-bar-inner {
+
+/* The colored fill layer (sits in the back) */
+.stat-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease-in-out;
+  z-index: 1; /* Sits behind the text */
+}
+
+/* The text layer (sits on top) */
+.stat-bar-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   color: white;
   text-align: center;
   font-size: 0.9em;
-  border-radius: 2px;
-  padding: 2px 0;
-  transition: width 0.5s ease-in-out;
+  font-weight: bold;
+  line-height: 18px; /* Vertically centers the text */
   text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+  z-index: 3; /* On top of everything */
 }
-.stat-bar-inner.hp { background-color: #b30000; }
-.stat-bar-inner.mana { background-color: #004b9b; }
 
+/* The label layer (sits between fill and text) */
 .stat-bar-label {
     font-size: 0.7em;
     text-transform: uppercase;
     position: absolute;
-    margin-left: 5px;
-    margin-top: 2px;
+    left: 5px;
+    top: 2px;
     color: rgba(255,255,255,0.8);
     text-shadow: 1px 1px #000;
     pointer-events: none;
+    z-index: 2; /* Sits behind the main numbers */
 }
-.core-stats, .other-info {
-    border-top: 1px solid #444;
-    padding-top: 10px;
-    margin-top: 10px;
-}
-.core-stats h4 { margin-bottom: 5px; }
+/* --- END CORRECTIONS --- */
+
+.stat-bar-fill.hp { background-color: #b30000; }
+.stat-bar-fill.mana { background-color: #004b9b; }
+.stat-bar-fill.xp { background-color: #a89100; }
+
+.level-up-button { /* ... (style remains the same) ... */ }
+@keyframes pulse { /* ... (style remains the same) ... */ }
+.core-stats, .other-info { /* ... (style remains the same) ... */ }

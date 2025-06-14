@@ -1,0 +1,61 @@
+/* client/src/components/Tooltip.css */
+
+.tooltip {
+  position: absolute;
+  background-color: #1a1a1a;
+  border: 1px solid #666;
+  border-radius: 4px;
+  padding: 12px;
+  width: 250px;
+  z-index: 100;
+  pointer-events: none; /* Allows mouse events to pass through */
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  color: #e0e0e0;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.tooltip-name {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #bb86fc;
+  text-transform: capitalize;
+}
+
+.tooltip-slot {
+  font-size: 0.8em;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.tooltip-description {
+  font-style: italic;
+  color: #ccc;
+  margin: 0 0 10px 0;
+}
+
+.tooltip-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-line {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stat-line.weight {
+  color: #aaa;
+  margin-top: 5px;
+  border-top: 1px dashed #444;
+  padding-top: 5px;
+}

@@ -1,4 +1,4 @@
-// NightfallMUD/server/prisma/schema.prisma
+// server/src/prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +9,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- NEW: An Enum for NPC/Mob hostility status ---
+enum Hostility {
+  FRIENDLY
+  NEUTRAL
+  HOSTILE
+}
+
+enum Class {
+  VANGUARD
+  SHADOWBLADE
+  AETHER_WEAVER
+  DAWNKEEPER
+  TECHNOMANCER
+  GLOOM_WARDEN
+}
+
 model Account {
   id         String      @id @default(cuid())
   username   String      @unique
@@ -16,50 +32,41 @@ model Account {
   characters Character[]
 }
 
-// In prisma/schema.prisma
-
 model Character {
-  id            String @id @default(cuid())
-  name          String @unique
-
-  accountId     String
-  account       Account @relation(fields: [accountId], references: [id])
-
-  level         Int    @default(1)
-  experience    Int    @default(0)
-  gold          Int    @default(10)
-
-  // Core Attributes
-  strength      Int    @default(5)
-  dexterity     Int    @default(5)
-  constitution  Int    @default(5)
-  intelligence  Int    @default(5)
-  wisdom        Int    @default(5)
-  charisma      Int    @default(5)
-
-  // Vitals
-  hp            Int    @default(10)
-  maxHp         Int    @default(10)
-  mana          Int    @default(5)
-  maxMana       Int    @default(5)
-  defense       Int    @default(1) // <-- ADD THIS LINE
-
-  // Game State
-  currentRoomId String
-  room          Room    @relation("RoomToCharacters", fields: [currentRoomId], references: [id])
-  inventory     Item[]  @relation("CharacterToItems")
+  id                    String @id @default(cuid())
+  name                  String @unique
+  class                 Class
+  accountId             String
+  account               Account @relation(fields: [accountId], references: [id])
+  level                 Int    @default(1)
+  experience            Int    @default(0)
+  experienceToNextLevel Int    @default(10)
+  unspentStatPoints     Int    @default(0)
+  gold                  Int    @default(10)
+  strength              Int
+  dexterity             Int
+  constitution          Int
+  intelligence          Int
+  wisdom                Int
+  charisma              Int
+  resolve               Int
+  hp                    Int
+  maxHp                 Int
+  mana                  Int
+  maxMana               Int
+  defense               Int
+  currentRoomId         String
+  room                  Room    @relation("RoomToCharacters", fields: [currentRoomId], references: [id])
+  inventory             Item[]  @relation("CharacterToItems")
 }
 
 model Room {
-  id          String   @id
+  id          String      @id
   name        String
   description String
   exits       Json
   characters  Character[] @relation("RoomToCharacters")
   items       Item[]      @relation("RoomToItems")
-
-  // --- NEW RELATION ---
-  // A Room can have many Mobs
   mobs        Mob[]       @relation("RoomToMobs")
 }
 
@@ -67,31 +74,45 @@ model Item {
   id          String     @id @default(cuid())
   name        String
   description String
+  weight      Float      @default(0)
+  slot        EquipSlot  @default(NONE)
+  equipped    Boolean    @default(false)
+  attributes  Json       @default("{}")
   roomId      String?
   room        Room?      @relation("RoomToItems", fields: [roomId], references: [id])
   characterId String?
   character   Character? @relation("CharacterToItems", fields: [characterId], references: [id])
 }
 
-// --- NEW MODEL ---
-// Defines a Mob (monster/NPC) in the game
+// --- UPDATED MODEL ---
 model Mob {
   id                String  @id @default(cuid())
   name              String
   description       String
+  
+  // --- NEW: Hostility Field ---
+  hostility         Hostility @default(NEUTRAL)
 
-  // Stats
   level             Int     @default(1)
   hp                Int
   maxHp             Int
   strength          Int
   defense           Int
-
-  // Rewards
   experienceAward   Int
   goldAward         Int
-
-  // Location
   roomId            String
   room              Room    @relation("RoomToMobs", fields: [roomId], references: [id])
+}
+
+enum EquipSlot {
+  NONE
+  HEAD
+  CHEST
+  LEGS
+  FEET
+  HANDS
+  WEAPON_MAIN
+  WEAPON_OFF
+  RING
+  AMULET
 }

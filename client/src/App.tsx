@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Auth } from './components/Auth';
 import { Game } from './components/Game';
 import { CharacterSelect } from './components/CharacterSelect';
+import { Header } from './components/Header'; // <-- Import the new Header
 import './App.css';
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
       localStorage.setItem('nightfall-token', token);
     } else {
       localStorage.removeItem('nightfall-token');
-      setSelectedCharacterId(null); 
+      setSelectedCharacterId(null);
     }
   }, [token]);
 
@@ -30,9 +31,14 @@ function App() {
     setToken(null);
   };
 
+  // This function will be passed to the Game component to allow it to reset the character selection
+  const handleSwitchCharacter = () => {
+    setSelectedCharacterId(null);
+  }
+
   const renderContent = () => {
     if (token && selectedCharacterId) {
-      return <Game token={token} characterId={selectedCharacterId} />;
+      return <Game token={token} characterId={selectedCharacterId} onSwitchCharacter={handleSwitchCharacter} />;
     } else if (token) {
       return <CharacterSelect token={token} onCharacterSelect={handleCharacterSelect} />;
     } else {
@@ -42,13 +48,10 @@ function App() {
 
   return (
     <div className="App">
-      {renderContent()}
-      
-      {/* --- THIS IS THE FIX --- */}
-      {/* Show the logout button as soon as a token exists, even before a character is selected */}
-      {token && (
-        <button onClick={handleLogout} className="logout-button">Logout</button>
-      )}
+      <Header isLoggedIn={!!token} onLogout={handleLogout} />
+      <main className="app-content">
+        {renderContent()}
+      </main>
     </div>
   );
 }
