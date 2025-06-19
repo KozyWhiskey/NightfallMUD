@@ -1,18 +1,20 @@
 // client/src/components/InventoryPanel.tsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useGameStore } from '../stores/useGameStore'; // <-- Import the store
 import type { Item } from '../types';
-import { Tooltip } from './Tooltip'; // <-- Import the new Tooltip component
+import { Tooltip } from './Tooltip';
 import './InventoryPanel.css';
 
-interface InventoryPanelProps {
-  items: Item[];
-  onItemAction: (action: string, itemName: string) => void;
-}
+// This component no longer needs props
+export function InventoryPanel() {
+  // --- Get state and actions directly from the store ---
+  const inventory = useGameStore(state => state.inventory);
+  const sendCommand = useGameStore(state => state.sendCommand);
 
-export function InventoryPanel({ items, onItemAction }: InventoryPanelProps) {
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  // --- Derived state to get only backpack items ---
+  const backpackItems = useMemo(() => inventory.filter(item => !item.equipped), [inventory]);
   
-  // --- NEW: State for handling the tooltip ---
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
@@ -20,29 +22,35 @@ export function InventoryPanel({ items, onItemAction }: InventoryPanelProps) {
     setSelectedItemId(prev => (prev === itemId ? null : itemId));
   };
 
-  // --- NEW: Handlers for mouse events to show/hide tooltip ---
   const handleMouseEnter = (item: Item, e: React.MouseEvent) => {
     setHoveredItem(item);
-    // Position the tooltip slightly offset from the mouse cursor
     setTooltipPosition({ x: e.clientX + 15, y: e.clientY + 15 });
   };
 
   const handleMouseLeave = () => {
     setHoveredItem(null);
   };
+  
+  // --- NEW: Use the sendCommand action from the store ---
+  const handleItemAction = (action: string, itemName: string) => {
+    const commandObject = {
+        action: action.toLowerCase(),
+        payload: itemName.toLowerCase(),
+    };
+    sendCommand(commandObject);
+  };
 
   return (
     <>
-      {/* Conditionally render the Tooltip component when an item is hovered */}
       {hoveredItem && <Tooltip item={hoveredItem} style={{ top: tooltipPosition.y, left: tooltipPosition.x }} />}
 
       <div className="inventory-panel">
         <h4>Backpack</h4>
         <div className="inventory-list">
-          {items.length === 0 ? (
+          {backpackItems.length === 0 ? (
             <p className="empty-inventory">Your backpack is empty.</p>
           ) : (
-            items.map(item => (
+            backpackItems.map(item => (
               <div 
                 key={item.id} 
                 className="inventory-item-container"
@@ -58,11 +66,11 @@ export function InventoryPanel({ items, onItemAction }: InventoryPanelProps) {
                 
                 {selectedItemId === item.id && (
                   <div className="item-actions">
-                    <button onClick={() => onItemAction('examine', item.name)}>Examine</button>
+                    <button onClick={() => handleItemAction('examine', item.name)}>Examine</button>
                     {item.slot !== 'NONE' && (
-                      <button onClick={() => onItemAction('equip', item.name)}>Equip</button>
+                      <button onClick={() => handleItemAction('equip', item.name)}>Equip</button>
                     )}
-                    <button onClick={() => onItemAction('drop', item.name)}>Drop</button>
+                    <button onClick={() => handleItemAction('drop', item.name)}>Drop</button>
                   </div>
                 )}
               </div>

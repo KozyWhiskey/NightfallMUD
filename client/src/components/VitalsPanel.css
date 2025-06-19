@@ -1,0 +1,77 @@
+/* client/src/components/VitalsPanel.css */
+
+.vitals-panel {
+  /* We remove the background, border, and padding to make it "invisible" */
+  flex-shrink: 0;
+  color: #e0e0e0;
+}
+
+.character-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  padding: 0 5px; /* Add a little horizontal padding */
+}
+
+.character-name {
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.character-level {
+  font-size: 0.9em;
+  color: #aaa;
+}
+
+/* These styles are reused from the old StatsPanel for consistency */
+.stat-bar {
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  border: 1px solid #555;
+  margin-bottom: 10px;
+  position: relative;
+  height: 22px;
+  box-sizing: border-box;
+}
+
+.stat-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease-in-out;
+  z-index: 1;
+}
+
+.stat-bar-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: white;
+  text-align: center;
+  font-size: 0.9em;
+  font-weight: bold;
+  line-height: 18px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+  z-index: 3;
+}
+
+.stat-bar-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    color: rgba(255,255,255,0.8);
+    text-shadow: 1px 1px #000;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.stat-bar-fill.hp { background-color: #b30000; }
+.stat-bar-fill.mana { background-color: #004b9b; }
+.stat-bar-fill.xp { background-color: #a89100; }

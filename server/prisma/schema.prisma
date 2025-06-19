@@ -9,21 +9,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- NEW: An Enum for NPC/Mob hostility status ---
-enum Hostility {
-  FRIENDLY
-  NEUTRAL
+// --- ALL ENUMS DEFINED AT THE TOP ---
+enum Hostility { 
+  FRIENDLY 
+  NEUTRAL 
   HOSTILE
-}
-
-enum Class {
+  }
+enum Class { 
   VANGUARD
-  SHADOWBLADE
+  SHADOWBLADE 
   AETHER_WEAVER
   DAWNKEEPER
   TECHNOMANCER
-  GLOOM_WARDEN
-}
+  GLOOM_WARDEN 
+  }
+enum EquipSlot { 
+  NONE
+  HEAD
+  CHEST
+  LEGS
+  FEET
+  HANDS
+  WEAPON_MAIN
+  WEAPON_OFF
+  RING
+  AMULET 
+  }
 
 model Account {
   id         String      @id @default(cuid())
@@ -38,11 +49,11 @@ model Character {
   class                 Class
   accountId             String
   account               Account @relation(fields: [accountId], references: [id])
-  level                 Int    @default(1)
-  experience            Int    @default(0)
-  experienceToNextLevel Int    @default(10)
-  unspentStatPoints     Int    @default(0)
-  gold                  Int    @default(10)
+  level                 Int
+  experience            Int
+  experienceToNextLevel Int
+  unspentStatPoints     Int
+  gold                  Int
   strength              Int
   dexterity             Int
   constitution          Int
@@ -65,54 +76,52 @@ model Room {
   name        String
   description String
   exits       Json
+  x           Int         @default(0)
+  y           Int         @default(0)
+  z           Int         @default(0) // For different floors/levels
   characters  Character[] @relation("RoomToCharacters")
   items       Item[]      @relation("RoomToItems")
   mobs        Mob[]       @relation("RoomToMobs")
 }
 
-model Item {
-  id          String     @id @default(cuid())
-  name        String
+model ItemTemplate {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
   description String
-  weight      Float      @default(0)
-  slot        EquipSlot  @default(NONE)
-  equipped    Boolean    @default(false)
+  weight      Float
+  slot        EquipSlot
   attributes  Json       @default("{}")
-  roomId      String?
-  room        Room?      @relation("RoomToItems", fields: [roomId], references: [id])
-  characterId String?
-  character   Character? @relation("CharacterToItems", fields: [characterId], references: [id])
+  instances   Item[]
 }
 
-// --- UPDATED MODEL ---
+model Item {
+  id            String  @id @default(cuid())
+  itemTemplateId  Int
+  template        ItemTemplate @relation(fields: [itemTemplateId], references: [id])
+  
+  roomId        String?
+  room          Room?   @relation("RoomToItems", fields: [roomId], references: [id])
+  
+  characterId   String?
+  character     Character? @relation("CharacterToItems", fields: [characterId], references: [id])
+  
+  equipped      Boolean    @default(false)
+}
+
 model Mob {
-  id                String  @id @default(cuid())
+  id                String    @id @default(cuid())
   name              String
   description       String
-  
-  // --- NEW: Hostility Field ---
   hostility         Hostility @default(NEUTRAL)
-
-  level             Int     @default(1)
+  canDropGold       Boolean   @default(true)
+  lootTable         Json      @default("[]")
+  keywords          String[]
+  level             Int
   hp                Int
   maxHp             Int
   strength          Int
   defense           Int
   experienceAward   Int
-  goldAward         Int
   roomId            String
-  room              Room    @relation("RoomToMobs", fields: [roomId], references: [id])
-}
-
-enum EquipSlot {
-  NONE
-  HEAD
-  CHEST
-  LEGS
-  FEET
-  HANDS
-  WEAPON_MAIN
-  WEAPON_OFF
-  RING
-  AMULET
+  room              Room      @relation("RoomToMobs", fields: [roomId], references: [id])
 }

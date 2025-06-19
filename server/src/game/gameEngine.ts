@@ -1,5 +1,4 @@
 // server/src/game/gameEngine.ts
-
 import { PrismaClient } from '@prisma/client';
 import type { Character } from '@prisma/client';
 import { ICommandHandler, CommandHandlerContext } from './commands/command.interface';
@@ -53,9 +52,17 @@ export class GameEngine {
     const handler = this.commandRegistry.get(command.action.toLowerCase());
 
     if (handler) {
+      // THIS IS THE CORRECTED QUERY that fetches nested item data
       const character = await this.prisma.character.findUnique({
         where: { id: characterId },
-        include: { room: true, inventory: true },
+        include: { 
+          room: true, 
+          inventory: {
+            include: {
+              template: true
+            }
+          } 
+        },
       });
       if (!character) return [];
 
@@ -72,37 +79,58 @@ export class GameEngine {
     return [{ target: characterId, type: 'message', payload: { message: 'Unknown command.' } }];
   }
   
-  // --- Public Helper & Connection Methods ---
-  
   public async createFullGameUpdateEvent(characterId: string, message: string): Promise<GameEvent> {
-    const character = await this.prisma.character.findUnique({ where: { id: characterId }, include: { room: true, inventory: true } });
+    const character = await this.prisma.character.findUnique({ 
+        where: { id: characterId }, 
+        include: { room: true, inventory: { include: { template: true } } } 
+    });
     if (!character || !character.room) throw new Error(`Could not create game update for character ${characterId}.`);
     
     const playersInRoom = await this.getCharactersInRoom(character.currentRoomId, characterId);
-    const itemsInRoom = await this.prisma.item.findMany({ where: { roomId: character.currentRoomId }});
+    const itemsInRoom = await this.prisma.item.findMany({ where: { roomId: character.currentRoomId }, include: { template: true } });
     const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
+    const allRoomsInZone = await this.prisma.room.findMany({ where: { z: character.room.z }}); // For now, a "zone" is one z-level
+
 
     return {
       target: characterId, type: 'gameUpdate',
-      payload: { message, player: character, room: character.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: character.inventory, mobs: mobsInRoom, },
-    };
+      payload: { 
+        message, 
+        player: character, 
+        room: character.room, 
+        players: playersInRoom.map(p => p.name), 
+        roomItems: itemsInRoom, 
+        inventory: character.inventory, 
+        mobs: mobsInRoom,
+        zoneRooms: allRoomsInZone,
+        inCombat: this.combatManager.isCharacterInCombat(characterId) 
+      },    };
   }
 
   public async getCharactersInRoom(roomId: string, excludeCharacterId?: string) {
     return this.prisma.character.findMany({
       where: { currentRoomId: roomId, id: { not: excludeCharacterId } },
-      include: { room: true, inventory: true },
+      include: { room: true, inventory: { include: { template: true } } },
     });
   }
 
   public async handleCharacterConnect(characterId: string): Promise<GameEvent[]> {
-    let character = await this.prisma.character.findUnique({ where: { id: characterId }, include: { room: true, inventory: true } });
-    if (!character || !character.room) throw new Error(`Character ${characterId} not found.`);
-    
-    // --- NEW: Check for aggression on connect ---
+    let character = await this.prisma.character.findUnique({ 
+        where: { id: characterId }, 
+        include: { room: true, inventory: { include: { template: true } } } 
+    });
+    if (!character) throw new Error(`Character ${characterId} not found.`);
+    if (!character.room) {
+      character = await this.prisma.character.update({ 
+          where: { id: characterId }, 
+          data: { currentRoomId: 'room-1' }, 
+          include: { room: true, inventory: { include: { template: true } } } 
+      });
+      if (!character.room) throw new Error(`CRITICAL: Starting room not found.`);
+    }
     const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
     await this.combatManager.checkForAggression(character, mobsInRoom);
-
+    
     const event = await this.createFullGameUpdateEvent(characterId, `Welcome back, ${character.name}!`);
     const arrivalAnnouncement: GameEvent = { target: 'room', type: 'message', payload: { message: `${character.name} has connected.`, roomId: character.room.id, exclude: [characterId] } };
     return [arrivalAnnouncement, event];

@@ -1,7 +1,8 @@
 // client/src/components/AvatarPanel.tsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useGameStore } from '../stores/useGameStore'; // <-- Import the store
 import type { Item } from '../types';
-import { Tooltip } from './Tooltip'; // <-- Import Tooltip
+import { Tooltip } from './Tooltip';
 import './AvatarPanel.css';
 
 // Define the order and labels for our equipment slots
@@ -10,25 +11,26 @@ const EQUIP_SLOTS = [
   'WEAPON_MAIN', 'WEAPON_OFF', 'RING'
 ] as const;
 
-interface AvatarPanelProps {
-  equippedItems: Item[];
-  onItemAction: (action: string, itemName: string) => void;
-}
+// This component no longer needs props
+export function AvatarPanel() {
+  // --- Get state and actions directly from the store ---
+  const inventory = useGameStore(state => state.inventory);
+  const sendCommand = useGameStore(state => state.sendCommand);
 
-export function AvatarPanel({ equippedItems, onItemAction }: AvatarPanelProps) {
+  // --- Derived state to get only equipped items ---
+  const equippedItems = useMemo(() => inventory.filter(item => item.equipped), [inventory]);
+  
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  // --- NEW: State for handling the tooltip ---
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-  const itemMap = new Map(equippedItems.map(item => [item.slot, item]));
+  const itemMap = useMemo(() => new Map(equippedItems.map(item => [item.slot, item])), [equippedItems]);
 
   const handleSlotClick = (slot: string, hasItem: boolean) => {
     if (!hasItem) return;
     setSelectedSlot(prev => (prev === slot ? null : slot));
   };
 
-  // --- NEW: Handlers for mouse events to show/hide tooltip ---
   const handleMouseEnter = (item: Item, e: React.MouseEvent) => {
     setHoveredItem(item);
     setTooltipPosition({ x: e.clientX + 15, y: e.clientY + 15 });
@@ -37,10 +39,17 @@ export function AvatarPanel({ equippedItems, onItemAction }: AvatarPanelProps) {
   const handleMouseLeave = () => {
     setHoveredItem(null);
   };
+  
+  const handleItemAction = (action: string, itemName: string) => {
+    const commandObject = {
+        action: action.toLowerCase(),
+        payload: itemName.toLowerCase(),
+    };
+    sendCommand(commandObject);
+  };
 
   return (
     <>
-      {/* Conditionally render the Tooltip component when an item is hovered */}
       {hoveredItem && <Tooltip item={hoveredItem} style={{ top: tooltipPosition.y, left: tooltipPosition.x }} />}
 
       <div className="avatar-panel">
@@ -52,7 +61,6 @@ export function AvatarPanel({ equippedItems, onItemAction }: AvatarPanelProps) {
               <div 
                 key={slot} 
                 className="equip-slot-container"
-                // Add mouse handlers only if an item exists in the slot
                 onMouseEnter={item ? (e) => handleMouseEnter(item, e) : undefined}
                 onMouseLeave={item ? handleMouseLeave : undefined}
               >
@@ -68,8 +76,8 @@ export function AvatarPanel({ equippedItems, onItemAction }: AvatarPanelProps) {
 
                 {selectedSlot === slot && item && (
                   <div className="item-actions">
-                    <button onClick={() => onItemAction('examine', item.name)}>Details</button>
-                    <button onClick={() => onItemAction('unequip', item.name)}>Unequip</button>
+                    <button onClick={() => handleItemAction('examine', item.name)}>Details</button>
+                    <button onClick={() => handleItemAction('unequip', item.name)}>Unequip</button>
                   </div>
                 )}
               </div>

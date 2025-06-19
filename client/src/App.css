@@ -1,5 +1,19 @@
 /* client/src/App.css */
 
+html {
+  font-size: 15px;
+}
+
+body {
+  margin: 0;
+  /* Use 'Roboto' as the primary font, with fallbacks */
+  font-family: 'Roboto', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.87);
+  overflow: hidden; /* Prevent the main page from ever scrolling */
+}
+
+
 /* Main content area below the fixed header */
 .app-content {
   padding-top: 50px;
@@ -7,14 +21,11 @@
   box-sizing: border-box;
 }
 
-/* The main three-column grid container for our game UI */
+/* The main three-column grid container */
 .game-layout {
   display: grid;
   grid-template-columns: 320px 1fr 320px;
-  grid-template-rows: 1fr auto;
-  grid-template-areas:
-    "left main right"
-    "input input input";
+  grid-template-rows: 1fr;
   height: 100%; 
   width: 100%;
   box-sizing: border-box;
@@ -27,31 +38,32 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  flex-grow: 1;
 }
-.left-panel { grid-area: left; }
+.left-panel { grid-area: 1 / 1 / 2 / 2; }
 .right-panel-container { 
-  grid-area: right; 
+  grid-area: 1 / 3 / 2 / 4; 
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+/* --- UPDATED: Main Panel Layout --- */
 .main-panel {
-  grid-area: main;
+  grid-area: 1 / 2 / 2 / 3;
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* This should be column, not column-reverse */
   overflow: hidden;
   background-color: #242424;
   border: 1px solid #444;
   border-radius: 8px;
 }
 
-.input-area.full-width {
-  grid-area: input;
+.input-area {
+  padding: 12px;
+  border-top: 1px solid #444;
+  flex-shrink: 0;
 }
 
-/* Room and Log specific styles */
 .room-info {
   padding: 12px;
   border-bottom: 1px solid #444;
@@ -63,10 +75,11 @@
   flex-grow: 1;
   overflow-y: auto;
   padding: 12px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'Roboto', system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-size: 0.9rem;
 }
 
+/* The wrapper is no longer needed */
 .message-log > div {
   padding: 2px 0;
   line-height: 1.3;

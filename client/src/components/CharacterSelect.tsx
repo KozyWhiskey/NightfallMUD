@@ -15,7 +15,7 @@ interface CharacterSelectProps {
   onLogout: () => void; // Add this prop
 }
 
-export function CharacterSelect({ token, onCharacterSelect, onLogout }: CharacterSelectProps) {
+export function CharacterSelect({ token, onCharacterSelect}: CharacterSelectProps) {
   const [characters, setCharacters] = useState<CharacterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -52,8 +52,6 @@ export function CharacterSelect({ token, onCharacterSelect, onLogout }: Characte
   return (
     <div className="character-select-container">
       <div className="character-select-box">
-        {/* We can add a logout button here as well for consistency */}
-        <button onClick={onLogout} className="logout-button-alt">Logout</button>
         <h1>Select a Character</h1>
         {characters.length > 0 ? (
           <>

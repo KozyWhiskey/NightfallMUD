@@ -12,24 +12,24 @@ A modern, web-based, multiplayer text adventure (MUD) built with a fully type-sa
 
 NightfallMUD is a foundational engine for a classic text-based RPG, reimagined with modern web technologies. This project blends the depth of traditional MUDs with the usability and intuitive interface of a modern web application.
 
-The entire codebase is written in TypeScript, with a Node.js backend powering the game logic and a React frontend for the user interface. The project is architected using a scalable Command Pattern on the backend to make adding new features clean and manageable.
+The entire codebase is written in TypeScript, with a Node.js backend powering the game logic and a React frontend for the user interface. The project is architected using a scalable Command Pattern on the backend and a global Zustand store on the frontend to make adding new features clean and manageable.
 
 ### Core Features Implemented
-* **Persistent World:** All account, character, item, and mob data is saved in a PostgreSQL database, so progress is never lost.
+* **Persistent World:** All account, character, item, and mob data is saved in a PostgreSQL database.
 * **Secure Account System:** Full user registration and login flow using password hashing (`bcrypt`) and session management with JSON Web Tokens (JWT).
 * **Class-Based Characters:** Players create characters by choosing from one of six distinct classes, each with unique starting stats.
 * **Strategic, Round-Based Combat:** Combat resolves in 3-second "ticks," where players and mobs queue actions. This includes automatic aggression from hostile mobs.
-* **Player-Driven Progression:** A full leveling-up system where players gain XP, level up, and manually assign attribute points to customize their character's growth.
+* **Player-Driven Progression:** A full leveling-up system where players gain XP and manually assign attribute points.
 * **Functional Equipment System:** A complete inventory and equipment system. Players can `equip` and `unequip` items, which directly modify their effective stats in combat.
 * **Modern Interactive UI:**
-    * The UI is broken into logical panels for stats, equipment ("Avatar"), and inventory ("Backpack").
-    * Players can interact via both classic text commands and clickable UI elements (for movement, attacking, getting items, etc.).
-    * A "hover-for-stats" tooltip system displays detailed item information.
-    * A global header provides easy access to key actions like logging out.
+    * A three-column layout with tabbed side panels for organized information display.
+    * Panels for `Vitals`, `Attributes`, `Equipped` items, `Backpack`, and a static `Map`.
+    * Players can interact via both classic text commands and clickable UI elements.
+    * "Hover-for-stats" tooltips on inventory and equipped items.
 
 ## Built With
 
-* **Frontend:** React, Vite, TypeScript
+* **Frontend:** React, Vite, TypeScript, Zustand
 * **Backend:** Node.js, Express.js, TypeScript, `ws` (WebSockets)
 * **Database:** PostgreSQL with Prisma (Next-generation ORM)
 * **Authentication:** `bcrypt` (password hashing), `jsonwebtoken` (JWTs)
@@ -37,7 +37,7 @@ The entire codebase is written in TypeScript, with a Node.js backend powering th
 
 ## Getting Started
 
-To get a local copy up and running, follow these steps.
+To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
@@ -47,7 +47,7 @@ You must have Node.js and npm installed on your machine.
 
 1.  **Clone the repository:**
     ```sh
-    git clone [https://github.com/YOUR_USERNAME/NightfallMUD.git](https://github.com/YOUR_USERNAME/NightfallMUD.git)
+    git clone [https://github.com/KozyWhiskey/NightfallMUD.git](https://github.com/KozyWhiskey/NightfallMUD.git)
     cd NightfallMUD
     ```
 2.  **Install Server & Client Dependencies:**
@@ -62,15 +62,11 @@ You must have Node.js and npm installed on your machine.
 
 4.  **Configure Environment Variables:**
     * In the `NightfallMUD/server` directory, create a new file named `.env`.
-    * Add your database connection string and a secret key for signing JWTs. **This file should not be committed to Git.**
+    * Add your database connection string and a secret key for signing JWTs. **This file must not be committed to Git.**
 
     ```env
     # /server/.env
-
-    # Your full PostgreSQL Connection Bouncer string from Supabase
-    DATABASE_URL="postgresql://postgres.[project-id]:[YOUR-PASSWORD]@[aws-region][.pooler.supabase.com:5432/postgres](https://.pooler.supabase.com:5432/postgres)"
-
-    # A long, random, secret string for signing tokens
+    DATABASE_URL="YOUR_POSTGRESQL_CONNECTION_STRING"
     JWT_SECRET="REPLACE_THIS_WITH_A_VERY_LONG_RANDOM_SECRET_STRING"
     ```
 
@@ -104,11 +100,8 @@ You will need to run the backend and frontend in two separate terminals.
 
 ## Roadmap
 
-The project is now a robust platform. Future features will focus on expanding content and deepening game mechanics.
-* [ ] **Skills & Magic:** Implement class-specific abilities and a mana-based casting system.
-* [ ] **Mob Loot Tables:** Allow mobs to drop specific items upon defeat.
-* [ ] **Player Death & Respawn:** Create a meaningful consequence for reaching 0 HP.
-* [ ] **UI Combat Timer:** Add a visual progress bar to represent the 3-second combat round.
-* [ ] **Quest System:** Build out the "Quests" tab with NPCs, objectives, and rewards.
-
-See the [open issues](https://github.com/YOUR_USERNAME/NightfallMUD/issues) for a full list of proposed features.
+The project is now a robust platform. Future features will focus on expanding content and deepening game mechanics. See the full **[Development Roadmap](https://github.com/KozyWhiskey/NightfallMUD/blob/main/ROADMAP.md)** for more details.
+* **Mob Loot Drops:** Implement the designed loot table system.
+* **Player Death & Respawn:** Create a meaningful consequence for reaching 0 HP.
+* **Magic & Skill System:** Implement class-specific abilities.
+* **Quest System:** Build out the "Quests" tab with NPCs, objectives, and rewards.
