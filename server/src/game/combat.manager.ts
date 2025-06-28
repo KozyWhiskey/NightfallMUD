@@ -1,48 +1,32 @@
 // server/src/game/combat.manager.ts
 import { PrismaClient, Hostility } from '@prisma/client';
 import type { Character, Mob, Item } from '@prisma/client';
+import { gameEventEmitter, MobDefeatedPayload } from './game.emitter';
 import type { GameEvent } from './gameEngine';
-import { LootService } from './loot.service';
+import { AttributeService } from './attribute.service';
+import type { CharacterWithRelations } from './commands/command.interface';
 
 interface QueuedAction { actorId: string; actorType: 'CHARACTER' | 'MOB'; action: 'attack'; targetId: string; }
 interface CombatInstance {
   roomId: string;
   participantIds: Set<string>;
   actionQueue: QueuedAction[];
-  mobTargets: Map<string, string>; // Maps mobId to characterId
+  mobTargets: Map<string, string>;
 }
-
-type EffectiveStats = {
-  name: string;
-  hp: number;
-  strength: number;
-  defense: number;
-};
-
-// A more specific Character type that includes the inventory relation
-type CharacterWithInventory = Character & {
-  inventory: (Item & {
-    template: {
-      attributes: any;
-    }
-  })[]
-};
 
 export class CombatManager {
   private prisma: PrismaClient;
-  private lootService: LootService;
   private activeCombats: Map<string, CombatInstance> = new Map();
   private broadcastCallback: (events: GameEvent[]) => void;
-  private levelUpChecker: (character: Character) => Promise<GameEvent[]>;
+  private attributeService: AttributeService;
 
   constructor(
     broadcastCallback: (events: GameEvent[]) => void,
-    levelUpChecker: (character: Character) => Promise<GameEvent[]>
+    attributeService: AttributeService
   ) {
     this.prisma = new PrismaClient();
-    this.lootService = new LootService(this.prisma);
     this.broadcastCallback = broadcastCallback;
-    this.levelUpChecker = levelUpChecker;
+    this.attributeService = attributeService;
     this.startCombatLoop();
   }
 
@@ -53,13 +37,11 @@ export class CombatManager {
   public async checkForAggression(character: Character, mobsInRoom: Mob[]) {
     const hostileMobs = mobsInRoom.filter(mob => mob.hostility === Hostility.HOSTILE && mob.hp > 0);
     if (hostileMobs.length === 0) return;
-
     let combat = this.activeCombats.get(character.currentRoomId);
     if (!combat) {
       combat = { roomId: character.currentRoomId, participantIds: new Set(), actionQueue: [], mobTargets: new Map() };
       this.activeCombats.set(character.currentRoomId, combat);
     }
-
     combat.participantIds.add(character.id);
     const events: GameEvent[] = [];
     hostileMobs.forEach(mob => {
@@ -100,20 +82,6 @@ export class CombatManager {
     return false;
   }
 
-  private _getEffectiveStats(participant: CharacterWithInventory | Mob): EffectiveStats {
-    let effectiveStats: EffectiveStats = { name: participant.name, hp: participant.hp, strength: participant.strength, defense: participant.defense, };
-    if ('inventory' in participant && Array.isArray(participant.inventory)) {
-      participant.inventory.forEach(item => {
-        if (item.equipped && item.template && typeof item.template.attributes === 'object' && item.template.attributes !== null) {
-          const attributes = item.template.attributes as Record<string, number>;
-          effectiveStats.strength += attributes.damage || 0;
-          effectiveStats.defense += attributes.armor || 0;
-        }
-      });
-    }
-    return effectiveStats;
-  }
-
   private async resolveAllCombatRounds() {
     if (this.activeCombats.size === 0) return;
     const allEvents: GameEvent[] = [];
@@ -122,12 +90,12 @@ export class CombatManager {
       const participantIds = Array.from(combat.participantIds);
       if (participantIds.length === 0) { this.activeCombats.delete(roomId); continue; }
 
-      const charactersInCombat = await this.prisma.character.findMany({ 
-        where: { id: { in: participantIds } }, 
-        include: { inventory: { include: { template: true } } }
-      });
+      const charactersInCombat = await this.prisma.character.findMany({ where: { id: { in: participantIds } }, include: { inventory: { include: { template: true } }, room: true } });
       const mobsInCombat = await this.prisma.mob.findMany({ where: { id: { in: participantIds } } });
-      const participants = new Map<string, CharacterWithInventory | Mob>([...charactersInCombat, ...mobsInCombat].map(p => [p.id, { ...p }]));
+      
+      const participants = new Map<string, CharacterWithRelations | Mob>();
+      charactersInCombat.forEach(c => participants.set(c.id, c));
+      mobsInCombat.forEach(m => participants.set(m.id, m));
       
       const { actionQueue, mobTargets } = combat;
 
@@ -154,8 +122,8 @@ export class CombatManager {
         const actorData = participants.get(queuedAction.actorId);
         const targetData = participants.get(queuedAction.targetId);
         if (actorData && targetData && targetData.hp > 0 && actorData.hp > 0) {
-          const actor = this._getEffectiveStats(actorData as CharacterWithInventory | Mob);
-          const target = this._getEffectiveStats(targetData as CharacterWithInventory | Mob);
+          const actor = this.attributeService.getEffectiveStats(actorData as CharacterWithRelations | Mob);
+          const target = this.attributeService.getEffectiveStats(targetData as CharacterWithRelations | Mob);
           
           const damage = Math.max(1, actor.strength - target.defense);
           targetData.hp -= damage;
@@ -168,20 +136,8 @@ export class CombatManager {
               combat.participantIds.delete(targetData.id);
               allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `The ${targetData.name} has been defeated!`, exclude: [] }});
               if ('experienceToNextLevel' in actorData) {
-                const loot = await this.lootService.generateLootForMob(targetData);
-                await this.lootService.placeLootInRoom(roomId, loot);
-                if (loot.length > 0) {
-                  allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `The ${targetData.name} drops some loot!`, exclude: [] }});
-                }
-                const goldDropped = this.lootService.calculateGoldDrop(targetData);
-                let rewardsMessage = `You gained ${targetData.experienceAward} XP`;
-                if (goldDropped > 0) {
-                    rewardsMessage += ` and ${goldDropped} gold`;
-                }
-                rewardsMessage += `.`;
-                allEvents.push({ target: actorData.id, type: 'message', payload: { message: rewardsMessage }});
-                actorData.experience += targetData.experienceAward;
-                actorData.gold += goldDropped;
+                const payload: MobDefeatedPayload = { mob: targetData, killer: actorData as CharacterWithRelations, roomId };
+                gameEventEmitter.emit('mobDefeated', payload);
               }
             } else {
               allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `${targetData.name} has been defeated!`, exclude: [] }});
@@ -198,20 +154,11 @@ export class CombatManager {
           if ('experienceAward' in p) {
             if (!defeatedMobIds.has(p.id)) { await this.prisma.mob.update({ where: { id: p.id }, data: { hp: p.hp } }); }
           } else {
-            await this.prisma.character.update({ where: { id: p.id }, data: { hp: p.hp, experience: p.experience, gold: p.gold } });
+            await this.prisma.character.update({ where: { id: p.id }, data: { hp: p.hp } });
           }
         }
       }
       if (defeatedMobIds.size > 0) { await this.prisma.mob.deleteMany({ where: { id: { in: Array.from(defeatedMobIds) } } }); }
-      
-      const survivingCharacters = Array.from(participants.values()).filter(p => !('experienceAward' in p) && p.hp > 0) as CharacterWithInventory[];
-      for (const char of survivingCharacters) {
-        const charWithXp = participants.get(char.id) as CharacterWithInventory;
-        if(charWithXp){
-          const levelUpEvents = await this.levelUpChecker(charWithXp);
-          allEvents.push(...levelUpEvents);
-        }
-      }
       
       const finalCharacterStates = await this.prisma.character.findMany({ where: { id: { in: Array.from(combat.participantIds) } }, include: { room: true, inventory: { include: { template: true } } } });
       const finalMobsInRoom = await this.prisma.mob.findMany({ where: { roomId } });
@@ -229,12 +176,8 @@ export class CombatManager {
       }
       const mobsLeft = finalMobsInRoom.length > 0;
       const charactersLeft = finalCharacterStates.some(c => c.hp > 0);
-      if (!mobsLeft || !charactersLeft) {
-        this.activeCombats.delete(roomId);
-        console.log(`[Combat Manager] Combat ended in room ${roomId}.`);
-      }
+      if (!mobsLeft || !charactersLeft) { this.activeCombats.delete(roomId); }
     }
-
     if (allEvents.length > 0) {
       this.broadcastCallback(allEvents);
     }

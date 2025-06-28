@@ -2,9 +2,9 @@
 import { Prisma } from '@prisma/client';
 import type { GameEvent, Command } from '../gameEngine';
 import type { CombatManager } from '../combat.manager';
+import type { AttributeService } from '../attribute.service'; // <-- Import the new service
 
-// --- UPDATED: This type is now more specific ---
-// It tells TypeScript to include the full ItemTemplate for each item in the inventory.
+// This is the definitive type for a "fully loaded" character, including all relations.
 export type CharacterWithRelations = Prisma.CharacterGetPayload<{
   include: { 
     room: true, 
@@ -20,6 +20,7 @@ export type CharacterWithRelations = Prisma.CharacterGetPayload<{
 export interface CommandHandlerContext {
   prisma: Prisma.TransactionClient;
   combatManager: CombatManager;
+  attributeService: AttributeService; // <-- ADD the missing property
   getCharactersInRoom(roomId: string, excludeCharacterId?: string): Promise<CharacterWithRelations[]>;
   createFullGameUpdateEvent(characterId: string, message: string): Promise<GameEvent>;
 }

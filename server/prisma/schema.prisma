@@ -9,15 +9,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- ALL ENUMS DEFINED AT THE TOP ---
+// --- ENUMS ---
 enum Hostility { 
-  FRIENDLY 
-  NEUTRAL 
-  HOSTILE
+  FRIENDLY
+  NEUTRAL
+  HOSTILE 
   }
 enum Class { 
-  VANGUARD
-  SHADOWBLADE 
+  VANGUARD 
+  SHADOWBLADE
   AETHER_WEAVER
   DAWNKEEPER
   TECHNOMANCER
@@ -33,8 +33,21 @@ enum EquipSlot {
   WEAPON_MAIN
   WEAPON_OFF
   RING
-  AMULET 
+  AMULET
   }
+enum Rarity { 
+  COMMON
+  UNCOMMON
+  RARE
+  LEGENDARY
+  }
+enum AffixType {
+  PREFIX
+  SUFFIX
+  }
+
+// --- MODELS ---
+
 
 model Account {
   id         String      @id @default(cuid())
@@ -78,12 +91,13 @@ model Room {
   exits       Json
   x           Int         @default(0)
   y           Int         @default(0)
-  z           Int         @default(0) // For different floors/levels
+  z           Int         @default(0)
   characters  Character[] @relation("RoomToCharacters")
   items       Item[]      @relation("RoomToItems")
   mobs        Mob[]       @relation("RoomToMobs")
 }
 
+// --- THIS IS THE CORRECTED STRUCTURE ---
 model ItemTemplate {
   id          Int        @id @default(autoincrement())
   name        String     @unique
@@ -91,21 +105,43 @@ model ItemTemplate {
   weight      Float
   slot        EquipSlot
   attributes  Json       @default("{}")
+  // The back-relation to all instances created from this template
   instances   Item[]
 }
 
+// The blueprint for a randomly generated item type (e.g., "Dagger")
+model BaseItemType {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  slot  EquipSlot
+}
+
+// A master list of all possible magical properties
+model Affix {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  type            AffixType
+  requiredLevel   Int
+  attributes      Json
+}
+
+// This represents a unique INSTANCE of an item in the world
 model Item {
   id            String  @id @default(cuid())
+  
+  // The relation between an Item instance and its Template blueprint
   itemTemplateId  Int
   template        ItemTemplate @relation(fields: [itemTemplateId], references: [id])
   
+  // Location of this instance
   roomId        String?
   room          Room?   @relation("RoomToItems", fields: [roomId], references: [id])
-  
   characterId   String?
   character     Character? @relation("CharacterToItems", fields: [characterId], references: [id])
   
+  // Instance-specific properties
   equipped      Boolean    @default(false)
+  rarity        Rarity     @default(COMMON)
 }
 
 model Mob {

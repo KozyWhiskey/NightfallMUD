@@ -4,27 +4,27 @@ import './Tooltip.css';
 
 interface TooltipProps {
   item: Item;
+  style: React.CSSProperties;
 }
 
-// A helper to format attribute names nicely (e.g., 'fireDamage' -> 'Fire Damage')
 const formatAttributeName = (name: string) => {
-  return name
-    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-    .replace(/^./, str => str.toUpperCase()); // Capitalize the first letter
+  return name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 };
 
-export function Tooltip({ item }: TooltipProps) {
-  const attributes = item.attributes as Record<string, number>;
+export function Tooltip({ item, style }: TooltipProps) {
+  // Access all properties through the nested template object
+  const { name, slot, description, weight, attributes } = item.template;
+  const itemAttributes = attributes as Record<string, number>;
 
   return (
-    <div className="tooltip">
+    <div className="tooltip" style={style}>
       <div className="tooltip-header">
-        <span className="tooltip-name">{item.name}</span>
-        <span className="tooltip-slot">{item.slot}</span>
+        <span className="tooltip-name">{name}</span>
+        <span className="tooltip-slot">{slot}</span>
       </div>
-      <p className="tooltip-description">{item.description}</p>
+      <p className="tooltip-description">{description}</p>
       <div className="tooltip-stats">
-        {Object.entries(attributes).map(([key, value]) => (
+        {Object.entries(itemAttributes).map(([key, value]) => (
           <div key={key} className="stat-line">
             <span>{formatAttributeName(key)}</span>
             <span>+{value}</span>
@@ -32,7 +32,7 @@ export function Tooltip({ item }: TooltipProps) {
         ))}
         <div className="stat-line weight">
           <span>Weight</span>
-          <span>{item.weight}</span>
+          <span>{weight}</span>
         </div>
       </div>
     </div>

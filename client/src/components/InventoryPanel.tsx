@@ -1,17 +1,13 @@
 // client/src/components/InventoryPanel.tsx
 import { useState, useMemo } from 'react';
-import { useGameStore } from '../stores/useGameStore'; // <-- Import the store
+import { useGameStore } from '../stores/useGameStore';
 import type { Item } from '../types';
 import { Tooltip } from './Tooltip';
 import './InventoryPanel.css';
 
-// This component no longer needs props
 export function InventoryPanel() {
-  // --- Get state and actions directly from the store ---
   const inventory = useGameStore(state => state.inventory);
   const sendCommand = useGameStore(state => state.sendCommand);
-
-  // --- Derived state to get only backpack items ---
   const backpackItems = useMemo(() => inventory.filter(item => !item.equipped), [inventory]);
   
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -31,19 +27,13 @@ export function InventoryPanel() {
     setHoveredItem(null);
   };
   
-  // --- NEW: Use the sendCommand action from the store ---
   const handleItemAction = (action: string, itemName: string) => {
-    const commandObject = {
-        action: action.toLowerCase(),
-        payload: itemName.toLowerCase(),
-    };
-    sendCommand(commandObject);
+    sendCommand({ action: action.toLowerCase(), payload: itemName.toLowerCase() });
   };
 
   return (
     <>
       {hoveredItem && <Tooltip item={hoveredItem} style={{ top: tooltipPosition.y, left: tooltipPosition.x }} />}
-
       <div className="inventory-panel">
         <h4>Backpack</h4>
         <div className="inventory-list">
@@ -61,16 +51,16 @@ export function InventoryPanel() {
                   className={`inventory-item ${selectedItemId === item.id ? 'selected' : ''}`}
                   onClick={() => handleItemClick(item.id)}
                 >
-                  {item.name}
+                  {item.template.name}
                 </div>
                 
                 {selectedItemId === item.id && (
                   <div className="item-actions">
-                    <button onClick={() => handleItemAction('examine', item.name)}>Examine</button>
-                    {item.slot !== 'NONE' && (
-                      <button onClick={() => handleItemAction('equip', item.name)}>Equip</button>
+                    <button onClick={() => handleItemAction('examine', item.template.name)}>Examine</button>
+                    {item.template.slot !== 'NONE' && (
+                      <button onClick={() => handleItemAction('equip', item.template.name)}>Equip</button>
                     )}
-                    <button onClick={() => handleItemAction('drop', item.name)}>Drop</button>
+                    <button onClick={() => handleItemAction('drop', item.template.name)}>Drop</button>
                   </div>
                 )}
               </div>

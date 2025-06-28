@@ -8,7 +8,8 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
     description: 'The center of the small outpost of Haven. Cobblestone paths lead in all directions. A large, dry fountain sits in the middle, a testament to better times.',
     exits: { north: 'the-forge', east: 'the-inn', south: 'south-gate', west: 'the-armory' },
     x: 0, y: 0, z: 0,
-    items: [], mobTemplates: [],
+    items: [],
+    mobTemplates: [],
   },
   'the-forge': {
     id: 'the-forge', name: "Barnaby's Forge",
@@ -17,7 +18,7 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
     x: 0, y: 1, z: 0,
     items: [],
     mobTemplates: [
-      { name: 'Barnaby', description: 'The town blacksmith. He gives you a soot-stained grin.', hostility: Hostility.FRIENDLY, keywords: ['barnaby', 'blacksmith'], canDropGold: false, level: 10, hp: 100, maxHp: 100, strength: 10, defense: 10, experienceAward: 0 }
+      { name: 'Barnaby', description: 'The town blacksmith. He gives you a soot-stained grin.', hostility: Hostility.FRIENDLY, keywords: ['barnaby', 'blacksmith'], canDropGold: false, level: 10, hp: 100, maxHp: 100, strength: 10, defense: 10, experienceAward: 0, lootTable: [] }
     ],
   },
   'the-armory': {
@@ -35,7 +36,7 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
     x: 1, y: 0, z: 0,
     items: [],
     mobTemplates: [
-      { name: 'Barkeep', description: 'A cheerful looking fellow polishing a mug.', hostility: Hostility.FRIENDLY, keywords: ['barkeep', 'bartender'], canDropGold: true, level: 5, hp: 50, maxHp: 50, strength: 5, defense: 5, experienceAward: 0 }
+      { name: 'Barkeep', description: 'A cheerful looking fellow polishing a mug.', hostility: Hostility.FRIENDLY, keywords: ['barkeep', 'bartender'], canDropGold: true, level: 5, hp: 50, maxHp: 50, strength: 5, defense: 5, experienceAward: 0, lootTable: [] }
     ],
   },
   'inn-room': {
@@ -43,7 +44,8 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
     description: 'A simple, clean room with a bed and a small table. It feels safe here. You can rest and recover your strength.',
     exits: { down: 'the-inn' },
     x: 1, y: 0, z: 1,
-    items: [], mobTemplates: [],
+    items: [],
+    mobTemplates: [],
   },
   'arcane-sanctum': {
       id: 'arcane-sanctum', name: 'Arcane Sanctum',
@@ -52,7 +54,7 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
       x: 2, y: 0, z: 0,
       items: [],
       mobTemplates: [
-        { name: 'Elara', description: 'A serene scholar with eyes that seem to hold ancient secrets.', hostility: Hostility.FRIENDLY, keywords: ['elara', 'scholar'], canDropGold: false, level: 15, hp: 100, maxHp: 100, strength: 5, defense: 5, experienceAward: 0 }
+        { name: 'Elara', description: 'A serene scholar with eyes that seem to hold ancient secrets.', hostility: Hostility.FRIENDLY, keywords: ['elara', 'scholar'], canDropGold: false, level: 15, hp: 100, maxHp: 100, strength: 5, defense: 5, experienceAward: 0, lootTable: [] }
       ],
   },
   'south-gate': {
@@ -60,16 +62,32 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
     description: 'You stand at the southern gate of Haven. The town square is to the north, and a dusty path leads south towards a crude arena.',
     exits: { north: 'town-square', south: 'the-arena' },
     x: 0, y: -1, z: 0,
-    items: [], mobTemplates: [],
+    items: [],
+    mobTemplates: [],
   },
   'the-arena': {
     id: 'the-arena', name: 'Training Arena',
-    description: 'This dusty, open-air arena is where new adventurers test their might against captive beasts. The path back to town is north.',
+    description: 'This dusty, open-air arena is where new adventurers test their might...',
     exits: { north: 'south-gate', south: 'cave-entrance' },
     x: 0, y: -2, z: 0,
-    items: [],
+    items: [], // <-- This was the missing property
     mobTemplates: [
-      { name: 'Gloomfang Pup', description: 'A young, but aggressive, canine beast...', hostility: Hostility.HOSTILE, keywords: ['gloomfang', 'pup', 'gloomfang pup'], canDropGold: false, level: 2, hp: 15, maxHp: 15, strength: 4, defense: 1, experienceAward: 5 },
+      {
+        name: 'Gloomfang Pup', description: 'A young, but aggressive, canine beast...',
+        hostility: Hostility.HOSTILE, keywords: ['gloomfang', 'pup', 'gloomfang pup'],
+        canDropGold: false, level: 2, hp: 15, maxHp: 15, strength: 4, defense: 1, experienceAward: 5,
+        lootTable: [
+          {
+            groupName: "Random Dagger Drop",
+            dropChance: 1,
+            guaranteed: false,
+            maxDrops: 1,
+            items: [
+              { itemTemplateId: 202, generatesRandom: true, baseItemType: "Dagger", itemLevel: 2, quantity: "1", weight: 100 }
+            ]
+          }
+        ]
+      }
     ],
   },
   'cave-entrance': {
@@ -77,6 +95,8 @@ export const havenRooms: { [id: string]: RoomTemplate } = {
       description: 'The road ends at the mouth of a dark cave. A chilling wind whispers from within, promising danger and treasure.',
       exits: { north: 'the-arena' },
       x: 0, y: -3, z: 0,
-      items: [], mobTemplates: [],
+      items: [],
+      mobTemplates: [],
   }
 };
+

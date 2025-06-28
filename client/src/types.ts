@@ -2,6 +2,7 @@
 
 // This file contains all the shared type definitions for our frontend components.
 
+// --- FIXED: Reverted to standard enums for maximum stability and compatibility ---
 export enum Hostility {
   FRIENDLY = 'FRIENDLY',
   NEUTRAL = 'NEUTRAL',
@@ -24,24 +25,22 @@ export enum EquipSlot {
 // Defines the shape of an item instance
 export interface Item {
   id: string;
-  name: string;
-  description: string;
-  weight: number;
-  slot: EquipSlot;
   equipped: boolean;
-  attributes: Record<string, any>;
-  template: { // Item instances include their template data
+  itemTemplateId: number;
+  template: {
     name: string;
     description: string;
-    attributes: any;
+    weight: number;
+    slot: EquipSlot;
+    attributes: Record<string, number>;
   }
 }
 
 // Defines the shape of the player's character data
 export interface Player {
   id: string;
-  username: string; // From Account
-  name: string; // Character name
+  username: string; 
+  name: string; 
   level: number;
   experience: number;
   experienceToNextLevel: number;
@@ -84,17 +83,16 @@ export interface Room {
   z: number;
 }
 
-// --- NEW: Types for the Loot System ---
-
+// --- Types for the Loot System ---
 export interface LootItem {
   itemTemplateId: number;
-  quantity: string; // e.g., "1", "1d4", "2d6+1"
+  quantity: string;
   weight: number;
 }
 
 export interface LootGroup {
   groupName: string;
-  dropChance: number; // 0.0 to 1.0
+  dropChance: number;
   guaranteed: boolean;
   maxDrops: number;
   items: LootItem[];

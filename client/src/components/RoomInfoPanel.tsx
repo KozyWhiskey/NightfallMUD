@@ -1,10 +1,10 @@
 // client/src/components/RoomInfoPanel.tsx
 import { useGameStore } from '../stores/useGameStore';
+// --- FIXED: Import Hostility as a value, not just a type ---
 import { Hostility } from '../types';
+import type { Mob, Item } from '../types';
 
 export function RoomInfoPanel() {
-  // --- THIS IS THE FIX ---
-  // Select each piece of state individually to prevent re-renders.
   const room = useGameStore(state => state.room);
   const mobsInRoom = useGameStore(state => state.mobsInRoom);
   const roomItems = useGameStore(state => state.roomItems);
@@ -17,6 +17,7 @@ export function RoomInfoPanel() {
   
   const getMobClass = (hostility: Hostility) => {
     switch (hostility) {
+      // --- FIXED: Use the enum member for comparison ---
       case Hostility.HOSTILE: return 'mob-hostile';
       case Hostility.FRIENDLY: return 'mob-friendly';
       default: return 'mob-neutral';
@@ -28,8 +29,9 @@ export function RoomInfoPanel() {
       <h2>{room?.name || 'Connecting to NightfallMUD...'}</h2>
       <p>{room?.description}</p>
       
-      {mobsInRoom.length > 0 && <p>Creatures here: {mobsInRoom.map((mob, index) => {
+      {mobsInRoom.length > 0 && <p>Creatures here: {mobsInRoom.map((mob: Mob, index) => {
         const mobClass = getMobClass(mob.hostility);
+        // --- FIXED: Use the enum member for comparison ---
         const canAttack = mob.hostility !== Hostility.FRIENDLY;
         return (
           <span key={mob.id}>
@@ -45,9 +47,15 @@ export function RoomInfoPanel() {
         )
       })}.</p>}
 
-      {roomItems.length > 0 && <p className="room-items">You also see: {roomItems.map((item, index) => (
+      {roomItems.length > 0 && <p className="room-items">You also see: {roomItems.map((item: Item, index) => (
         <span key={item.id}>
-          <button className="item-button" onClick={() => handleCommandClick('get', item.name)} title={item.description}>{item.name}</button>
+          <button 
+            className="item-button" 
+            onClick={() => handleCommandClick('get', item.template.name)} 
+            title={item.template.description}
+          >
+            {item.template.name}
+          </button>
           {index < roomItems.length - 1 && ', '}
         </span>
       ))}.</p>}

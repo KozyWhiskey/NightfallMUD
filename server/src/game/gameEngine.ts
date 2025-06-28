@@ -3,6 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import type { Character } from '@prisma/client';
 import { ICommandHandler, CommandHandlerContext } from './commands/command.interface';
 import { CombatManager } from './combat.manager';
+import { LootService } from './loot.service';
+import { ProgressionService } from './progression.service';
+import { AttributeService } from './attribute.service';
 
 // --- Import all command handlers ---
 import { LookCommand } from './commands/look.command';
@@ -24,12 +27,19 @@ export class GameEngine {
   private prisma = new PrismaClient();
   private commandRegistry: Map<string, ICommandHandler> = new Map();
   public combatManager: CombatManager;
+  private lootService: LootService;
+  private progressionService: ProgressionService;
+  private attributeService: AttributeService;
 
   constructor(broadcastCallback: (events: GameEvent[]) => void) {
-    this.combatManager = new CombatManager(
-      broadcastCallback,
-      this._handleLevelUpCheck.bind(this)
-    );
+    this.attributeService = new AttributeService();
+    this.combatManager = new CombatManager(broadcastCallback, this.attributeService);
+    
+    this.lootService = new LootService(this.prisma, broadcastCallback);
+    this.progressionService = new ProgressionService(this.prisma, broadcastCallback);
+    this.lootService.listen();
+    this.progressionService.listen();
+
     this.registerCommands();
   }
 
@@ -52,7 +62,6 @@ export class GameEngine {
     const handler = this.commandRegistry.get(command.action.toLowerCase());
 
     if (handler) {
-      // THIS IS THE CORRECTED QUERY that fetches nested item data
       const character = await this.prisma.character.findUnique({
         where: { id: characterId },
         include: { 
@@ -71,6 +80,7 @@ export class GameEngine {
         combatManager: this.combatManager,
         getCharactersInRoom: this.getCharactersInRoom.bind(this),
         createFullGameUpdateEvent: this.createFullGameUpdateEvent.bind(this),
+        attributeService: this.attributeService,
       };
 
       return handler.execute(character, command, context);
@@ -87,24 +97,16 @@ export class GameEngine {
     if (!character || !character.room) throw new Error(`Could not create game update for character ${characterId}.`);
     
     const playersInRoom = await this.getCharactersInRoom(character.currentRoomId, characterId);
-    const itemsInRoom = await this.prisma.item.findMany({ where: { roomId: character.currentRoomId }, include: { template: true } });
+    const itemsInRoom = await this.prisma.item.findMany({ 
+        where: { roomId: character.currentRoomId }, 
+        include: { template: true } 
+    });
     const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
-    const allRoomsInZone = await this.prisma.room.findMany({ where: { z: character.room.z }}); // For now, a "zone" is one z-level
-
 
     return {
       target: characterId, type: 'gameUpdate',
-      payload: { 
-        message, 
-        player: character, 
-        room: character.room, 
-        players: playersInRoom.map(p => p.name), 
-        roomItems: itemsInRoom, 
-        inventory: character.inventory, 
-        mobs: mobsInRoom,
-        zoneRooms: allRoomsInZone,
-        inCombat: this.combatManager.isCharacterInCombat(characterId) 
-      },    };
+      payload: { message, player: character, room: character.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: character.inventory, mobs: mobsInRoom, inCombat: this.combatManager.isCharacterInCombat(characterId) },
+    };
   }
 
   public async getCharactersInRoom(roomId: string, excludeCharacterId?: string) {
@@ -123,7 +125,7 @@ export class GameEngine {
     if (!character.room) {
       character = await this.prisma.character.update({ 
           where: { id: characterId }, 
-          data: { currentRoomId: 'room-1' }, 
+          data: { currentRoomId: 'town-square' },
           include: { room: true, inventory: { include: { template: true } } } 
       });
       if (!character.room) throw new Error(`CRITICAL: Starting room not found.`);
@@ -141,37 +143,5 @@ export class GameEngine {
     if (!character) return null;
     this.combatManager.removeCharacterFromCombat(character.id);
     return { target: 'room', type: 'message', payload: { message: `${character.name} has disconnected.`, roomId: character.currentRoomId, exclude: [] } };
-  }
-
-  private async _handleLevelUpCheck(character: Character): Promise<GameEvent[]> {
-    const events: GameEvent[] = [];
-    let currentCharacterState = character;
-    let canLevelUp = currentCharacterState.experience >= currentCharacterState.experienceToNextLevel;
-
-    while (canLevelUp) {
-      const leftoverXp = currentCharacterState.experience - currentCharacterState.experienceToNextLevel;
-      const newLevel = currentCharacterState.level + 1;
-      const newXpToNextLevel = newLevel * 10;
-      const newMaxHp = currentCharacterState.maxHp + 5;
-
-      currentCharacterState = await this.prisma.character.update({
-        where: { id: character.id },
-        data: {
-          level: newLevel,
-          experience: leftoverXp,
-          experienceToNextLevel: newXpToNextLevel,
-          unspentStatPoints: { increment: 2 },
-          maxHp: newMaxHp,
-          hp: newMaxHp,
-          mana: currentCharacterState.maxMana,
-        },
-      });
-      
-      const levelUpMessage = `***********************************\n* DING! You are now ready for LEVEL ${newLevel}! *\n***********************************\nYour Max HP increases to ${newMaxHp}.\nYou have gained 2 points to assign to your attributes.`;
-      events.push({ target: character.id, type: 'message', payload: { message: levelUpMessage }});
-      
-      canLevelUp = currentCharacterState.experience >= currentCharacterState.experienceToNextLevel;
-    }
-    return events;
   }
 }

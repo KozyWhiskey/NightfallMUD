@@ -22,8 +22,10 @@ export interface MobTemplate {
   strength: number;
   defense: number;
   experienceAward: number;
+  lootTable: any; // Using 'any' as it's complex JSON
 }
 
+// The main Room interface now uses the templates
 export interface RoomTemplate {
   id: string;
   name: string;
@@ -32,6 +34,6 @@ export interface RoomTemplate {
   x: number;
   y: number;
   z: number;
-  items: number[];
+  items: number[]; // Every room must have an items array (even if empty)
   mobTemplates: MobTemplate[];
 }

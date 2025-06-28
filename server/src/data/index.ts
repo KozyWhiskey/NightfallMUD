@@ -1,14 +1,24 @@
 // server/src/data/index.ts
-import { allItemTemplates } from './items';
+import { allAffixes } from './affixes';
+import { baseItemTypes } from './items/baseTypes';
+import { allStaticItemTemplates } from './items/static'; // <-- Import static items
 import { havenRooms } from './zones/haven';
-// In the future, you would import other zones here:
-// import { gloomwoodRooms } from './zones/gloomwood';
 
 // Consolidate all room templates from all zones into one object
-export const allRoomTemplates = {
+const allRoomTemplates = {
   ...havenRooms,
-  // ...gloomwoodRooms,
 };
 
-// Export the master item list directly
-export { allItemTemplates };
+// Extract all mob templates from all rooms into a single array
+const allMobTemplates = Object.values(allRoomTemplates).flatMap(room => 
+  room.mobTemplates.map(mobTemplate => ({ ...mobTemplate, roomId: room.id }))
+);
+
+// Export all our master data lists from this central hub
+export { 
+  allAffixes, 
+  baseItemTypes, 
+  allStaticItemTemplates, // <-- Export static items
+  allRoomTemplates, 
+  allMobTemplates 
+};
