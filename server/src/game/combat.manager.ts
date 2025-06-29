@@ -90,7 +90,7 @@ export class CombatManager {
       const participantIds = Array.from(combat.participantIds);
       if (participantIds.length === 0) { this.activeCombats.delete(roomId); continue; }
 
-      const charactersInCombat = await this.prisma.character.findMany({ where: { id: { in: participantIds } }, include: { inventory: { include: { template: true } }, room: true } });
+      const charactersInCombat = await this.prisma.character.findMany({ where: { id: { in: participantIds } }, include: { inventory: { include: { baseItem: true, itemAffixes: { include: { affix: true } } } }, room: true } });
       const mobsInCombat = await this.prisma.mob.findMany({ where: { id: { in: participantIds } } });
       
       const participants = new Map<string, CharacterWithRelations | Mob>();
@@ -160,14 +160,14 @@ export class CombatManager {
       }
       if (defeatedMobIds.size > 0) { await this.prisma.mob.deleteMany({ where: { id: { in: Array.from(defeatedMobIds) } } }); }
       
-      const finalCharacterStates = await this.prisma.character.findMany({ where: { id: { in: Array.from(combat.participantIds) } }, include: { room: true, inventory: { include: { template: true } } } });
+      const finalCharacterStates = await this.prisma.character.findMany({ where: { id: { in: Array.from(combat.participantIds) } }, include: { room: true, inventory: { include: { baseItem: true, itemAffixes: { include: { affix: true } } } } } });
       const finalMobsInRoom = await this.prisma.mob.findMany({ where: { roomId } });
       
       for (const char of finalCharacterStates) {
           if (char.hp > 0) {
               const mobsWithTargets = finalMobsInRoom.map(mob => ({...mob, targetId: mobTargets.get(mob.id) || null }));
               const playersInRoom = finalCharacterStates.filter(p => p.id !== char.id);
-              const itemsInRoom = await this.prisma.item.findMany({ where: { roomId }, include: { template: true }});
+              const itemsInRoom = await this.prisma.item.findMany({ where: { roomId }, include: { baseItem: true, itemAffixes: { include: { affix: true } } }});
               allEvents.push({
                   target: char.id, type: 'gameUpdate',
                   payload: { message: ``, player: char, room: char.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: char.inventory, mobs: mobsWithTargets, inCombat: true }

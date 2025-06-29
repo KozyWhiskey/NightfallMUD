@@ -1,14 +1,7 @@
 // server/src/data/types.ts
 import { EquipSlot, Hostility } from '@prisma/client';
 
-export interface ItemTemplate {
-  id: number;
-  name: string;
-  description: string;
-  weight: number;
-  slot: EquipSlot;
-  attributes: Record<string, any>;
-}
+
 
 export interface MobTemplate {
   name: string;

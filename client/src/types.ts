@@ -22,18 +22,50 @@ export enum EquipSlot {
   AMULET = 'AMULET',
 }
 
+export enum Rarity {
+  COMMON = 'COMMON',
+  UNCOMMON = 'UNCOMMON',
+  RARE = 'RARE',
+  LEGENDARY = 'LEGENDARY',
+}
+
+export enum AffixType {
+  PREFIX = 'PREFIX',
+  SUFFIX = 'SUFFIX',
+}
+
+export interface Affix {
+  id: number;
+  name: string;
+  type: AffixType;
+  requiredLevel: number;
+  attributes: Record<string, any>;
+}
+
+export interface ItemAffix {
+  id: number;
+  affix: Affix;
+  value: Record<string, number>;
+}
+
 // Defines the shape of an item instance
 export interface Item {
   id: string;
+  name: string;
+  description: string;
   equipped: boolean;
-  itemTemplateId: number;
-  template: {
+  rarity: Rarity;
+  baseItem: {
+    id: number;
     name: string;
     description: string;
-    weight: number;
     slot: EquipSlot;
-    attributes: Record<string, number>;
-  }
+    baseWeight: number;
+    baseDamage: number | null;
+    baseArmor: number | null;
+    baseMagicResist: number | null;
+  };
+  itemAffixes: ItemAffix[];
 }
 
 // Defines the shape of the player's character data
@@ -83,24 +115,4 @@ export interface Room {
   z: number;
 }
 
-// --- Types for the Loot System ---
-export interface LootItem {
-  itemTemplateId: number;
-  quantity: string;
-  weight: number;
-}
 
-export interface LootGroup {
-  groupName: string;
-  dropChance: number;
-  guaranteed: boolean;
-  maxDrops: number;
-  items: LootItem[];
-}
-
-export type LootTable = LootGroup[];
-
-export interface GeneratedLoot {
-  itemTemplateId: number;
-  quantity: number;
-}

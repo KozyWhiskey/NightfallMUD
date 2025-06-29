@@ -11,9 +11,7 @@ export class InventoryCommand implements ICommandHandler {
     if (playerInventory.length === 0) {
       message = "You are not carrying anything.";
     } else {
-      // --- THIS IS THE FIX ---
-      // We now access the item's name through its 'template'.
-      message += playerInventory.map(item => `  - ${item.template.name}`).join('\n');
+      message += playerInventory.map(item => `  - ${item.baseItem.name}`).join('\n');
     }
 
     events.push({ target: character.id, type: 'message', payload: { message }});

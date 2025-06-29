@@ -1,7 +1,6 @@
 // server/src/data/index.ts
 import { allAffixes } from './affixes';
-import { baseItemTypes } from './items/baseTypes';
-import { allStaticItemTemplates } from './items/static'; // <-- Import static items
+import { baseItemTypes } from './baseItemTypes';
 import { havenRooms } from './zones/haven';
 
 // Consolidate all room templates from all zones into one object
@@ -18,7 +17,6 @@ const allMobTemplates = Object.values(allRoomTemplates).flatMap(room =>
 export { 
   allAffixes, 
   baseItemTypes, 
-  allStaticItemTemplates, // <-- Export static items
   allRoomTemplates, 
   allMobTemplates 
 };

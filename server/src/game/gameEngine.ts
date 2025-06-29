@@ -68,7 +68,8 @@ export class GameEngine {
           room: true, 
           inventory: {
             include: {
-              template: true
+              baseItem: true,
+              itemAffixes: { include: { affix: true } }
             }
           } 
         },
@@ -92,14 +93,14 @@ export class GameEngine {
   public async createFullGameUpdateEvent(characterId: string, message: string): Promise<GameEvent> {
     const character = await this.prisma.character.findUnique({ 
         where: { id: characterId }, 
-        include: { room: true, inventory: { include: { template: true } } } 
+        include: { room: true, inventory: { include: { baseItem: true, itemAffixes: { include: { affix: true } } } } } 
     });
     if (!character || !character.room) throw new Error(`Could not create game update for character ${characterId}.`);
     
     const playersInRoom = await this.getCharactersInRoom(character.currentRoomId, characterId);
     const itemsInRoom = await this.prisma.item.findMany({ 
         where: { roomId: character.currentRoomId }, 
-        include: { template: true } 
+        include: { baseItem: true, itemAffixes: { include: { affix: true } } } 
     });
     const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
 
@@ -112,21 +113,21 @@ export class GameEngine {
   public async getCharactersInRoom(roomId: string, excludeCharacterId?: string) {
     return this.prisma.character.findMany({
       where: { currentRoomId: roomId, id: { not: excludeCharacterId } },
-      include: { room: true, inventory: { include: { template: true } } },
+      include: { room: true, inventory: { include: { baseItem: true, itemAffixes: { include: { affix: true } } } } },
     });
   }
 
   public async handleCharacterConnect(characterId: string): Promise<GameEvent[]> {
     let character = await this.prisma.character.findUnique({ 
         where: { id: characterId }, 
-        include: { room: true, inventory: { include: { template: true } } } 
+        include: { room: true, inventory: { include: { baseItem: true, itemAffixes: { include: { affix: true } } } } } 
     });
     if (!character) throw new Error(`Character ${characterId} not found.`);
     if (!character.room) {
       character = await this.prisma.character.update({ 
           where: { id: characterId }, 
           data: { currentRoomId: 'town-square' },
-          include: { room: true, inventory: { include: { template: true } } } 
+          include: { room: true, inventory: { include: { baseItem: true, itemAffixes: { include: { affix: true } } } } } 
       });
       if (!character.room) throw new Error(`CRITICAL: Starting room not found.`);
     }

@@ -51,10 +51,10 @@ export function RoomInfoPanel() {
         <span key={item.id}>
           <button 
             className="item-button" 
-            onClick={() => handleCommandClick('get', item.template.name)} 
-            title={item.template.description}
+            onClick={() => handleCommandClick('get', item.baseItem?.name || item.name)} 
+            title={item.baseItem?.description || item.description || 'No description available'}
           >
-            {item.template.name}
+            {item.baseItem?.name || item.name}
           </button>
           {index < roomItems.length - 1 && ', '}
         </span>

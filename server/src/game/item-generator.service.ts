@@ -1,15 +1,6 @@
 // server/src/game/item-generator.service.ts
-import { PrismaClient, Rarity, AffixType, BaseItemType, Affix, EquipSlot } from '@prisma/client';
+import { PrismaClient, AffixType, BaseItem, Affix, EquipSlot, Prisma, Rarity } from '@prisma/client';
 
-// This is the data needed to create a new unique Item instance
-export interface GeneratedItemData {
-  name: string;
-  description: string;
-  weight: number;
-  slot: EquipSlot;
-  rarity: Rarity;
-  attributes: Record<string, number>;
-}
 
 export class ItemGenerationService {
   private prisma: PrismaClient;
@@ -18,10 +9,10 @@ export class ItemGenerationService {
     this.prisma = prisma;
   }
 
-  public async generateRandomItem(baseItemTypeName: string, itemLevel: number): Promise<GeneratedItemData | null> {
-    const baseItem = await this.prisma.baseItemType.findUnique({ where: { name: baseItemTypeName } });
+  public async generateRandomItem(baseItemName: string, itemLevel: number): Promise<Prisma.ItemCreateInput | null> {
+    const baseItem = await this.prisma.baseItem.findUnique({ where: { name: baseItemName } });
     if (!baseItem) {
-      console.error(`[ItemGenerator] BaseItemType '${baseItemTypeName}' not found.`);
+      console.error(`[ItemGenerator] BaseItem '${baseItemName}' not found.`);
       return null;
     }
 
@@ -34,25 +25,29 @@ export class ItemGenerationService {
 
     const selectedAffixes = this._selectAffixes(possibleAffixes, affixCount);
     
-    const finalAttributes: Record<string, number> = {};
-    selectedAffixes.forEach(affix => {
-      const affixAttrs = affix.attributes as Record<string, { min: number, max: number }>;
-      for (const [stat, range] of Object.entries(affixAttrs)) {
-        const rolledValue = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-        finalAttributes[stat] = (finalAttributes[stat] || 0) + rolledValue;
-      }
-    });
+    const itemAffixes: Prisma.ItemAffixCreateNestedManyWithoutItemInput = {
+      create: selectedAffixes.map(affix => {
+        const affixAttrs = affix.attributes as Record<string, { min: number, max: number }>;
+        const value: Prisma.JsonObject = {};
+        for (const [stat, range] of Object.entries(affixAttrs)) {
+          value[stat] = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+        }
+        return {
+          affix: { connect: { id: affix.id } },
+          value: value,
+        };
+      }),
+    };
 
     const generatedName = this._generateItemName(baseItem, selectedAffixes);
     const description = `A magically enhanced ${baseItem.name}.`;
 
     return {
-      name: generatedName,
-      description,
-      weight: 1.0, // Placeholder weight
-      slot: baseItem.slot,
       rarity,
-      attributes: finalAttributes,
+      baseItem: {
+        connect: { id: baseItem.id }
+      },
+      itemAffixes: itemAffixes,
     };
   }
 
@@ -94,7 +89,7 @@ export class ItemGenerationService {
     return selected;
   }
 
-  private _generateItemName(baseItem: BaseItemType, affixes: Affix[]): string {
+  private _generateItemName(baseItem: BaseItem, affixes: Affix[]): string {
     const prefix = affixes.find(a => a.type === AffixType.PREFIX);
     const suffix = affixes.find(a => a.type === AffixType.SUFFIX);
     

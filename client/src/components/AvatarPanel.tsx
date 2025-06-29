@@ -2,12 +2,13 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import type { Item } from '../types';
+import { EquipSlot } from '../types';
 import { Tooltip } from './Tooltip';
 import './AvatarPanel.css';
 
 const EQUIP_SLOTS = [
-  'HEAD', 'AMULET', 'CHEST', 'LEGS', 'FEET', 'HANDS', 
-  'WEAPON_MAIN', 'WEAPON_OFF', 'RING'
+  EquipSlot.HEAD, EquipSlot.AMULET, EquipSlot.CHEST, EquipSlot.LEGS, EquipSlot.FEET, EquipSlot.HANDS, 
+  EquipSlot.WEAPON_MAIN, EquipSlot.WEAPON_OFF, EquipSlot.RING
 ] as const;
 
 export function AvatarPanel() {
@@ -19,7 +20,7 @@ export function AvatarPanel() {
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-  const itemMap = useMemo(() => new Map(equippedItems.map(item => [item.template.slot, item])), [equippedItems]);
+  const itemMap = useMemo(() => new Map(equippedItems.map(item => [item.baseItem.slot, item])), [equippedItems]);
 
   const handleSlotClick = (slot: string, hasItem: boolean) => {
     if (!hasItem) return;
@@ -60,14 +61,14 @@ export function AvatarPanel() {
                 >
                   <div className="slot-label">{slot.replace('_', ' ').toLowerCase()}</div>
                   <div className="slot-item-name">
-                    {item ? item.template.name : '----'}
+                    {item ? item.baseItem.name : '----'}
                   </div>
                 </div>
 
                 {selectedSlot === slot && item && (
                   <div className="item-actions">
-                    <button onClick={() => handleItemAction('examine', item.template.name)}>Details</button>
-                    <button onClick={() => handleItemAction('unequip', item.template.name)}>Unequip</button>
+                    <button onClick={() => handleItemAction('examine', item.baseItem.name)}>Details</button>
+                    <button onClick={() => handleItemAction('unequip', item.baseItem.name)}>Unequip</button>
                   </div>
                 )}
               </div>

@@ -10,16 +10,13 @@ export class GetCommand implements ICommandHandler {
     if (!character.room) return [];
 
     // --- THIS IS THE FIX ---
-    // We now query based on the related template's name.
     const item = await context.prisma.item.findFirst({
       where: {
         roomId: character.room.id,
-        template: {
-          name: { equals: itemName, mode: 'insensitive' }
-        }
+        baseItem: { name: { equals: itemName, mode: 'insensitive' } }
       },
       include: {
-        template: true // Ensure the template data is included in the result
+        baseItem: true // Include baseItem for dynamic items
       }
     });
 
@@ -29,12 +26,12 @@ export class GetCommand implements ICommandHandler {
         data: { roomId: null, characterId: character.id }
       });
 
-      // We now access the name via item.template.name
-      events.push(await context.createFullGameUpdateEvent(character.id, `You take the ${item.template.name}.`));
+      const pickedUpItemName = item.baseItem.name;
+      events.push(await context.createFullGameUpdateEvent(character.id, `You take the ${pickedUpItemName}.`));
       events.push({
         target: 'room',
         type: 'message',
-        payload: { roomId: character.room.id, message: `${character.name} takes the ${item.template.name}.`, exclude: [character.id] }
+        payload: { roomId: character.room.id, message: `${character.name} takes the ${pickedUpItemName}.`, exclude: [character.id] }
       });
     } else {
       events.push({ target: character.id, type: 'message', payload: { message: "You don't see that here." }});

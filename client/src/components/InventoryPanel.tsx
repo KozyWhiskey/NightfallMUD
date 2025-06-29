@@ -51,16 +51,16 @@ export function InventoryPanel() {
                   className={`inventory-item ${selectedItemId === item.id ? 'selected' : ''}`}
                   onClick={() => handleItemClick(item.id)}
                 >
-                  {item.template.name}
+                  {item.baseItem.name}
                 </div>
                 
                 {selectedItemId === item.id && (
                   <div className="item-actions">
-                    <button onClick={() => handleItemAction('examine', item.template.name)}>Examine</button>
-                    {item.template.slot !== 'NONE' && (
-                      <button onClick={() => handleItemAction('equip', item.template.name)}>Equip</button>
+                    <button onClick={() => handleItemAction('examine', item.baseItem.name)}>Examine</button>
+                    {item.baseItem.slot !== 'NONE' && (
+                      <button onClick={() => handleItemAction('equip', item.baseItem.name)}>Equip</button>
                     )}
-                    <button onClick={() => handleItemAction('drop', item.template.name)}>Drop</button>
+                    <button onClick={() => handleItemAction('drop', item.baseItem.name)}>Drop</button>
                   </div>
                 )}
               </div>

@@ -12,27 +12,47 @@ const formatAttributeName = (name: string) => {
 };
 
 export function Tooltip({ item, style }: TooltipProps) {
-  // Access all properties through the nested template object
-  const { name, slot, description, weight, attributes } = item.template;
-  const itemAttributes = attributes as Record<string, number>;
+  const { description, rarity, baseItem, itemAffixes } = item;
+  const { name, slot, baseWeight, baseDamage, baseArmor, baseMagicResist } = baseItem;
 
   return (
     <div className="tooltip" style={style}>
       <div className="tooltip-header">
         <span className="tooltip-name">{name}</span>
+        <span className="tooltip-rarity">{rarity}</span>
         <span className="tooltip-slot">{slot}</span>
       </div>
       <p className="tooltip-description">{description}</p>
       <div className="tooltip-stats">
-        {Object.entries(itemAttributes).map(([key, value]) => (
-          <div key={key} className="stat-line">
-            <span>{formatAttributeName(key)}</span>
-            <span>+{value}</span>
+        {baseDamage && (
+          <div className="stat-line">
+            <span>Damage</span>
+            <span>{baseDamage}</span>
           </div>
+        )}
+        {baseArmor && (
+          <div className="stat-line">
+            <span>Armor</span>
+            <span>{baseArmor}</span>
+          </div>
+        )}
+        {baseMagicResist && (
+          <div className="stat-line">
+            <span>Magic Resist</span>
+            <span>{baseMagicResist}</span>
+          </div>
+        )}
+        {itemAffixes.map(itemAffix => (
+          Object.entries(itemAffix.value).map(([key, value]) => (
+            <div key={`${itemAffix.id}-${key}`} className="stat-line affix-line">
+              <span>{itemAffix.affix.name} ({formatAttributeName(key)})</span>
+              <span>+{value}</span>
+            </div>
+          ))
         ))}
         <div className="stat-line weight">
           <span>Weight</span>
-          <span>{weight}</span>
+          <span>{baseWeight}</span>
         </div>
       </div>
     </div>

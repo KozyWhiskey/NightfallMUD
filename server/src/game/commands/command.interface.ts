@@ -6,14 +6,15 @@ import type { AttributeService } from '../attribute.service'; // <-- Import the 
 
 // This is the definitive type for a "fully loaded" character, including all relations.
 export type CharacterWithRelations = Prisma.CharacterGetPayload<{
-  include: { 
-    room: true, 
-    inventory: {
-      include: {
-        template: true
-      }
+  include: 
+    { room: true; 
+      inventory: { 
+        include: { 
+          baseItem: true, 
+          itemAffixes: { include: { affix: true } }
+        } 
+      } 
     } 
-  }
 }>;
 
 // The context object passed to every command handler

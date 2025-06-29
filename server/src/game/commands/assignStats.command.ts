@@ -1,12 +1,9 @@
 // server/src/game/commands/assignStats.command.ts
-import { Prisma } from '@prisma/client';
-import type { ICommandHandler, CommandHandlerContext } from './command.interface';
+import type { ICommandHandler, CommandHandlerContext, CharacterWithRelations } from './command.interface';
 import type { Command, GameEvent } from '../gameEngine';
 
-// --- Define the specific type for a fully loaded character ---
-type CharacterWithRelations = Prisma.CharacterGetPayload<{
-  include: { room: true, inventory: true }
-}>;
+
+
 
 export class AssignStatsCommand implements ICommandHandler {
   // Use the new, more specific type for the 'character' parameter

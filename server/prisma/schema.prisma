@@ -97,51 +97,67 @@ model Room {
   mobs        Mob[]       @relation("RoomToMobs")
 }
 
-// --- THIS IS THE CORRECTED STRUCTURE ---
-model ItemTemplate {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique
-  description String
-  weight      Float
-  slot        EquipSlot
-  attributes  Json       @default("{}")
-  // The back-relation to all instances created from this template
-  instances   Item[]
-}
+
 
 // The blueprint for a randomly generated item type (e.g., "Dagger")
-model BaseItemType {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
-  slot  EquipSlot
+// Renamed from BaseItemType to BaseItem and added base stats
+model BaseItem {
+  id              Int         @id @default(autoincrement())
+  name            String      @unique
+  description     String
+  slot            EquipSlot
+  baseWeight      Float
+  baseDamage      Int?
+  baseArmor       Int?
+  baseMagicResist Int?
+  items           Item[] // Back-relation to Item instances
 }
 
-// A master list of all possible magical properties
+// A master list of all possible magical properties (Prefixes and Suffixes)
 model Affix {
-  id              Int       @id @default(autoincrement())
-  name            String    @unique
+  id              Int         @id @default(autoincrement())
+  name            String      @unique
   type            AffixType
   requiredLevel   Int
+  // attributes will store the actual stat modifications, e.g., { "strength": 5, "fireDamage": 10 }
   attributes      Json
+  itemAffixes     ItemAffix[] // Back-relation to ItemAffix join table
+}
+
+// Join table for Item and Affix to store specific affix values for an item instance
+model ItemAffix {
+  id        Int    @id @default(autoincrement())
+  itemId    String
+  item      Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  affixId   Int
+  affix     Affix  @relation(fields: [affixId], references: [id], onDelete: Cascade)
+  // Store the actual value applied by this affix to this specific item instance
+  // This allows for affixes like "Strength + (3-5)" where the actual value is rolled
+  value     Json // e.g., { "strength": 4 }
 }
 
 // This represents a unique INSTANCE of an item in the world
 model Item {
   id            String  @id @default(cuid())
-  
-  // The relation between an Item instance and its Template blueprint
-  itemTemplateId  Int
-  template        ItemTemplate @relation(fields: [itemTemplateId], references: [id])
-  
+
+  // Link to the BaseItem definition
+  baseItemId    Int
+  baseItem      BaseItem @relation(fields: [baseItemId], references: [id])
+
+  // Link to applied affixes
+  itemAffixes   ItemAffix[]
+
+  // Instance-specific properties
+  equipped      Boolean    @default(false)
+  rarity        Rarity     @default(COMMON)
+
   // Location of this instance
   roomId        String?
   room          Room?   @relation("RoomToItems", fields: [roomId], references: [id])
   characterId   String?
   character     Character? @relation("CharacterToItems", fields: [characterId], references: [id])
+
   
-  // Instance-specific properties
-  equipped      Boolean    @default(false)
-  rarity        Rarity     @default(COMMON)
 }
 
 model Mob {

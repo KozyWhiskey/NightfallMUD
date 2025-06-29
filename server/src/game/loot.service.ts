@@ -1,11 +1,10 @@
 // server/src/game/loot.service.ts
-import { PrismaClient, Mob } from '@prisma/client';
+import { PrismaClient, Mob, Prisma } from '@prisma/client';
 import { gameEventEmitter, MobDefeatedPayload } from './game.emitter';
 import { ItemGenerationService } from './item-generator.service';
 import type { GameEvent } from './gameEngine';
 
 interface LootDrop {
-  itemTemplateId?: number;
   generatesRandom?: boolean;
   baseItemType?: string;
   itemLevel?: number;
@@ -92,13 +91,14 @@ export class LootService {
                 if (itemToDrop.generatesRandom && itemToDrop.baseItemType && itemToDrop.itemLevel) {
                   const generatedItemData = await this.itemGenerator.generateRandomItem(itemToDrop.baseItemType, itemToDrop.itemLevel);
                   if (generatedItemData) {
-                    const newItemTemplate = await this.prisma.itemTemplate.create({ data: generatedItemData });
-                    await this.prisma.item.create({ data: { itemTemplateId: newItemTemplate.id, roomId: roomId } });
+                    const dataToCreate: Prisma.ItemCreateInput = {
+                      ...generatedItemData,
+                      room: { connect: { id: roomId } },
+                      character: undefined,
+                    };
+                    await this.prisma.item.create({ data: dataToCreate });
                     lootDropped = true;
                   }
-                } else if (itemToDrop.itemTemplateId) {
-                  await this.prisma.item.create({ data: { itemTemplateId: itemToDrop.itemTemplateId, roomId: roomId } });
-                  lootDropped = true;
                 }
               }
               break;

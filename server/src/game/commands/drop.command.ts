@@ -10,8 +10,9 @@ export class DropCommand implements ICommandHandler {
     if (!character.room) return [];
 
     // --- THIS IS THE FIX ---
-    // We find the item by looking at its template's name.
-    const item = character.inventory.find(invItem => invItem.template.name.toLowerCase() === itemName.toLowerCase());
+    const item = character.inventory.find(invItem => 
+      invItem.baseItem.name.toLowerCase() === itemName.toLowerCase()
+    );
     
     if (item) {
       await context.prisma.item.update({
@@ -19,11 +20,12 @@ export class DropCommand implements ICommandHandler {
         data: { characterId: null, roomId: character.room.id }
       });
 
-      events.push(await context.createFullGameUpdateEvent(character.id, `You drop the ${item.template.name}.`));
+      const droppedItemName = item.baseItem.name;
+      events.push(await context.createFullGameUpdateEvent(character.id, `You drop the ${droppedItemName}.`));
       events.push({
         target: 'room',
         type: 'message',
-        payload: { roomId: character.room.id, message: `${character.name} drops a ${item.template.name}.`, exclude: [character.id] }
+        payload: { roomId: character.room.id, message: `${character.name} drops a ${droppedItemName}.`, exclude: [character.id] }
       });
     } else {
       events.push({ target: character.id, type: 'message', payload: { message: "You aren't carrying that." }});

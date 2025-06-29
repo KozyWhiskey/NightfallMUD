@@ -1,14 +1,14 @@
 // server/src/routes/character.ts
 import { Router, Response } from 'express';
 import { PrismaClient, Class } from '@prisma/client';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { webService, AuthenticatedRequest } from '../services/web.service';
 import { startingClassData } from '../game/class.data';
 
 const prisma = new PrismaClient();
 const router = Router();
 
 // This middleware protects all routes defined in this file.
-router.use(authMiddleware);
+router.use(webService.authMiddleware);
 
 // GET /api/characters - Fetch all characters for the logged-in account
 const handleGetCharacters = async (req: AuthenticatedRequest, res: Response) => {
@@ -52,7 +52,7 @@ const handleCreateCharacter = async (req: AuthenticatedRequest, res: Response) =
         name: name,
         class: characterClass,
         accountId: req.user.accountId,
-        currentRoomId: 'room-1',
+        currentRoomId: 'town-square',
         ...classData.stats,
       },
     });

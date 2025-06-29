@@ -21,16 +21,15 @@ async function main() {
   await prisma.character.deleteMany();
   await prisma.account.deleteMany();
   await prisma.affix.deleteMany();
-  await prisma.baseItemType.deleteMany();
+  await prisma.baseItem.deleteMany();
   await prisma.room.deleteMany();
-  await prisma.itemTemplate.deleteMany();
   console.log('Existing data cleared.');
   
   // --- CREATION LOGIC ---
 
   // 1. Create all master data for random generation
   console.log('Seeding master data...');
-  await prisma.baseItemType.createMany({ data: baseItemTypes });
+  await prisma.baseItem.createMany({ data: baseItemTypes });
   await prisma.affix.createMany({ data: allAffixes });
   console.log(`Seeded ${baseItemTypes.length} base item types and ${allAffixes.length} affixes.`);
 

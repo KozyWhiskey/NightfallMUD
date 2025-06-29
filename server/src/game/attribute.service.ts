@@ -1,6 +1,11 @@
 // server/src/game/attribute.service.ts
-import type { Item, Mob } from '@prisma/client';
+import type { Mob } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { CharacterWithRelations } from './commands/command.interface';
+
+type ItemWithAffixes = Prisma.ItemGetPayload<{
+  include: { itemAffixes: { include: { affix: true } }, baseItem: true }
+}>;
 
 // This type defines the final, calculated stats for any combatant.
 export interface EffectiveStats {
@@ -23,13 +28,22 @@ export class AttributeService {
 
     // If it's a character, add stats from their equipped items.
     if ('inventory' in participant && Array.isArray(participant.inventory)) {
-      participant.inventory.forEach((item: Item & { template: any }) => {
-        if (item.equipped && item.template && typeof item.template.attributes === 'object' && item.template.attributes !== null) {
-          const attributes = item.template.attributes as Record<string, number>;
-          
-          // Apply bonuses from gear
-          baseStats.strength += attributes.damage || 0; // The 'damage' attribute on items adds to strength
-          baseStats.defense += attributes.armor || 0;  // The 'armor' attribute on items adds to defense
+      participant.inventory.forEach((item) => {
+        // Add base stats from the item itself
+        if (item.baseItem.baseDamage) baseStats.strength += item.baseItem.baseDamage;
+        if (item.baseItem.baseArmor) baseStats.defense += item.baseItem.baseArmor;
+        if (item.baseItem.baseMagicResist) baseStats.defense += item.baseItem.baseMagicResist; // Assuming magic resist adds to defense for simplicity
+
+        // Apply bonuses from affixes
+        if (item.equipped) {
+          item.itemAffixes.forEach(itemAffix => {
+            const affixAttributes = itemAffix.value as Record<string, number>;
+            for (const [stat, value] of Object.entries(affixAttributes)) {
+              if (stat === 'strength') baseStats.strength += value;
+              if (stat === 'defense') baseStats.defense += value;
+              // Add other stats as needed
+            }
+          });
         }
       });
     }
