@@ -59,8 +59,12 @@
 
 *In case of failure, what are the steps to revert the changes?*
 
+## 9. Roadmap Update
+
+*After completing the task, update the `server-roadmap.md` document to reflect the changes. This includes marking the task as complete and adding any new features or milestones to the roadmap.*
+
 ---
 
 ## Notes & Decisions
 
-*A log of any important decisions made during the implementation process.*
+*A log of any important decisions made during the implementation process.*`

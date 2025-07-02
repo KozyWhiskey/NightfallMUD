@@ -11,7 +11,8 @@ import { MessageLogPanel } from './MessageLogPanel';
 import { RoomInfoPanel } from './RoomInfoPanel';
 import { InputPanel } from './InputPanel';
 import { VitalsPanel } from './VitalsPanel';
-import { MapPanel } from './MapPanel'; // <-- Import the new MapPanel
+import { MapPanel } from './MapPanel';
+import { Grid, Flex, Box } from '@chakra-ui/react';
 import type { Player } from '../types';
 
 // --- Interfaces ---
@@ -78,11 +79,9 @@ export function Game({ token, characterId }: GameProps) {
     { label: 'Equipped', content: <AvatarPanel /> },
   ];
   
-  // --- UPDATED: The MapPanel is now in place ---
   const rightPanelTabs = [
     { label: 'Backpack', content: <InventoryPanel /> },
     { label: 'Quests', content: <div>Quest Log Coming Soon!</div> },
-    { label: 'Map', content: <MapPanel /> },
   ];
 
   if (!player || !room) {
@@ -94,21 +93,59 @@ export function Game({ token, characterId }: GameProps) {
       {isLevelUpVisible && player && (
         <LevelUpModal player={player} onConfirm={handleConfirmLevelUp} onCancel={() => setIsLevelUpVisible(false)} />
       )}
-      <div className="game-layout">
-        <div className="side-panel left-panel">
+      <Grid
+        templateColumns={{ base: '1fr', md: '320px 1fr 320px' }}
+        templateRows="1fr"
+        h="calc(100vh - 50px)"
+        w="100vw"
+        gap={3}
+        p={3}
+        bg="gray.900"
+      >
+        {/* Left Panel */}
+        <Flex
+          direction="column"
+          overflow="hidden"
+          gridColumn={{ base: '1', md: '1' }}
+          gridRow="1"
+          minW="0"
+        >
           <VitalsPanel />
           <TabbedView tabs={leftPanelTabs} />
-        </div>
-        <div className="main-panel">
-          <RoomInfoPanel />
+        </Flex>
+        {/* Main Panel */}
+        <Flex
+          direction="column"
+          overflow="hidden"
+          bg="gray.800"
+          border="1px solid"
+          borderColor="gray.700"
+          borderRadius="lg"
+          gridColumn={{ base: '1', md: '2' }}
+          gridRow="1"
+          minW="0"
+        >
           <CombatPanel />
-          <MessageLogPanel />
-          <InputPanel />
-        </div>
-        <div className="side-panel right-panel">
+          <RoomInfoPanel />
+          <Box flex="1" minH={0} display="flex" flexDirection="column">
+            <MessageLogPanel />
+          </Box>
+          <Box mt="auto">
+            <InputPanel />
+          </Box>
+        </Flex>
+        {/* Right Panel */}
+        <Flex
+          direction="column"
+          overflow="hidden"
+          gridColumn={{ base: '1', md: '3' }}
+          gridRow="1"
+          minW="0"
+        >
+          <MapPanel />
           <TabbedView tabs={rightPanelTabs} />
-        </div>
-      </div>
+        </Flex>
+      </Grid>
     </>
   );
 }

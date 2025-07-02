@@ -1,41 +1,54 @@
 // client/src/components/VitalsPanel.tsx
 import { useGameStore } from '../stores/useGameStore';
-import './VitalsPanel.css';
+import { Box, Text, Flex, Progress } from '@chakra-ui/react';
 
 export function VitalsPanel() {
   const player = useGameStore(state => state.player);
 
   if (!player) {
-    return <div className="vitals-panel loading">Loading Vitals...</div>;
+    return <Box p={4} bg="gray.900" borderRadius="lg">Loading Vitals...</Box>;
   }
 
-  return (
-    <div className="vitals-panel">
-      <div className="character-header">
-        <span className="character-name">{player.name}</span>
-        <span className="character-level">Level {player.level}</span>
-      </div>
-      
-      {/* HP Bar */}
-      <div className="stat-bar" title={`HP: ${player.hp} / ${player.maxHp}`}>
-        <div className="stat-bar-fill hp" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
-        <div className="stat-bar-label">HP</div>
-        <div className="stat-bar-text">{player.hp} / {player.maxHp}</div>
-      </div>
+  const panelBg = 'gray.900';
 
-      {/* Mana Bar */}
-      <div className="stat-bar" title={`Mana: ${player.mana} / ${player.maxMana}`}>
-        <div className="stat-bar-fill mana" style={{ width: `${(player.mana / player.maxMana) * 100}%` }}></div>
-        <div className="stat-bar-label">MP</div>
-        <div className="stat-bar-text">{player.mana} / {player.maxMana}</div>
-      </div>
-      
-      {/* XP Bar */}
-      <div className="stat-bar" title={`XP: ${player.experience} / ${player.experienceToNextLevel}`}>
-        <div className="stat-bar-fill xp" style={{ width: `${(player.experience / player.experienceToNextLevel) * 100}%` }}></div>
-        <div className="stat-bar-label">XP</div>
-        <div className="stat-bar-text">{player.experience} / {player.experienceToNextLevel}</div>
-      </div>
-    </div>
+  return (
+    <Box className="vitals-panel" bg={panelBg} borderRadius="lg" boxShadow="md" p={4} minH="120px">
+      <Flex direction="column" gap={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Text fontWeight="bold" fontSize="lg" color="blue.200">{player.name}</Text>
+          <Text color="gray.400">Level {player.level}</Text>
+        </Box>
+        {/* HP Bar */}
+        <Box>
+          <Text fontSize="sm" color="red.300">HP</Text>
+          <Progress.Root value={(player.hp / player.maxHp) * 100} colorPalette="red" size="sm" borderRadius="md">
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+          <Text fontSize="xs" color="gray.300">{player.hp} / {player.maxHp}</Text>
+        </Box>
+        {/* Mana Bar */}
+        <Box>
+          <Text fontSize="sm" color="blue.300">MP</Text>
+          <Progress.Root value={(player.mana / player.maxMana) * 100} colorPalette="blue" size="sm" borderRadius="md">
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+          <Text fontSize="xs" color="gray.300">{player.mana} / {player.maxMana}</Text>
+        </Box>
+        {/* XP Bar */}
+        <Box>
+          <Text fontSize="sm" color="yellow.300">XP</Text>
+          <Progress.Root value={(player.experience / player.experienceToNextLevel) * 100} colorPalette="yellow" size="sm" borderRadius="md">
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+          <Text fontSize="xs" color="gray.300">{player.experience} / {player.experienceToNextLevel}</Text>
+        </Box>
+      </Flex>
+    </Box>
   );
 }

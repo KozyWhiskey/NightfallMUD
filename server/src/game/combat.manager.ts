@@ -5,6 +5,9 @@ import { gameEventEmitter, MobDefeatedPayload } from './game.emitter';
 import type { GameEvent } from './gameEngine';
 import { AttributeService } from './attribute.service';
 import type { CharacterWithRelations } from './commands/command.interface';
+import { DeathService } from './services/death.service';
+import { allRoomTemplates } from '../data';
+import { gameEngine } from '../services/game.service';
 
 interface QueuedAction { actorId: string; actorType: 'CHARACTER' | 'MOB'; action: 'attack'; targetId: string; }
 interface CombatInstance {
@@ -19,14 +22,17 @@ export class CombatManager {
   private activeCombats: Map<string, CombatInstance> = new Map();
   private broadcastCallback: (events: GameEvent[]) => void;
   private attributeService: AttributeService;
+  private deathService: DeathService;
 
   constructor(
     broadcastCallback: (events: GameEvent[]) => void,
-    attributeService: AttributeService
+    attributeService: AttributeService,
+    deathService: DeathService
   ) {
     this.prisma = new PrismaClient();
     this.broadcastCallback = broadcastCallback;
     this.attributeService = attributeService;
+    this.deathService = deathService;
     this.startCombatLoop();
   }
 
@@ -141,7 +147,7 @@ export class CombatManager {
               }
             } else {
               allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `${targetData.name} has been defeated!`, exclude: [] }});
-              targetData.hp = targetData.maxHp;
+              this.deathService.handlePlayerDeath(targetData as CharacterWithRelations);
             }
           }
         }
@@ -170,13 +176,41 @@ export class CombatManager {
               const itemsInRoom = await this.prisma.item.findMany({ where: { roomId }, include: { baseItem: true, itemAffixes: { include: { affix: true } } }});
               allEvents.push({
                   target: char.id, type: 'gameUpdate',
-                  payload: { message: ``, player: char, room: char.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: char.inventory, mobs: mobsWithTargets, inCombat: true }
+                  payload: { 
+                    message: ``, 
+                    player: char, 
+                    room: char.room, 
+                    players: playersInRoom.map(p => p.name), 
+                    roomItems: itemsInRoom, 
+                    inventory: char.inventory, 
+                    mobs: mobsWithTargets, 
+                    inCombat: true,
+                    zoneRooms: Object.values(allRoomTemplates).map(roomTemplate => ({
+                      id: roomTemplate.id,
+                      name: roomTemplate.name,
+                      description: roomTemplate.description,
+                      exits: roomTemplate.exits,
+                      x: roomTemplate.x,
+                      y: roomTemplate.y,
+                      z: roomTemplate.z,
+                    }))
+                  }
               });
           }
       }
       const mobsLeft = finalMobsInRoom.length > 0;
       const charactersLeft = finalCharacterStates.some(c => c.hp > 0);
-      if (!mobsLeft || !charactersLeft) { this.activeCombats.delete(roomId); }
+      if (!mobsLeft || !charactersLeft) {
+        this.activeCombats.delete(roomId);
+        // Send inCombat: false game update to all characters who were in the room
+        const allRoomCharacters = await gameEngine.getCharactersInRoom(roomId);
+        for (const char of allRoomCharacters) {
+          const gameUpdate = await gameEngine.createFullGameUpdateEvent(char.id, 'Combat has ended.');
+          // Force inCombat: false in the payload
+          gameUpdate.payload.inCombat = false;
+          allEvents.push(gameUpdate);
+        }
+      }
     }
     if (allEvents.length > 0) {
       this.broadcastCallback(allEvents);

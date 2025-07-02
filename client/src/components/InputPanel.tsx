@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useGameStore } from '../stores/useGameStore';
+import { Box, Input, Button, Flex } from '@chakra-ui/react';
 
 export function InputPanel() {
   const [inputValue, setInputValue] = useState('');
@@ -23,19 +24,28 @@ export function InputPanel() {
     setInputValue('');
   };
 
+  const panelBg = 'gray.900';
+
   return (
-    <div className="input-area">
-      <input 
-        ref={inputRef} // Attach the ref
-        type="text" 
-        value={inputValue} 
-        onChange={(e) => setInputValue(e.target.value)} 
-        onKeyPress={(e) => e.key === 'Enter' && handleSendCommand()} 
-        placeholder={isActionDisabled ? "Waiting for next round..." : "Type a command..."}
-        disabled={isActionDisabled}
-        autoFocus // Focus the input when the component first loads
-      />
-      <button onClick={handleSendCommand} disabled={isActionDisabled}>Send</button>
-    </div>
+    <Box bg={panelBg} borderRadius="lg" boxShadow="md" p={2} mt={2}>
+      <Flex direction="row" gap={2}>
+        <Input
+          ref={inputRef} // Attach the ref
+          type="text" 
+          value={inputValue} 
+          onChange={(e) => setInputValue(e.target.value)} 
+          onKeyPress={(e) => e.key === 'Enter' && handleSendCommand()} 
+          placeholder={isActionDisabled ? "Waiting for next round..." : "Type a command..."}
+          disabled={isActionDisabled}
+          autoFocus // Focus the input when the component first loads
+          color="blue.200"
+          bg="gray.800"
+          _placeholder={{ color: 'gray.500' }}
+        />
+        <Button onClick={handleSendCommand} disabled={isActionDisabled} colorScheme="blue">
+          Send
+        </Button>
+      </Flex>
+    </Box>
   );
 }

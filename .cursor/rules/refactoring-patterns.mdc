@@ -1,0 +1,261 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Refactoring Patterns
+
+## CSS to Chakra UI v3 Migration
+
+This document outlines the established patterns for migrating components from external CSS files to Chakra UI v3 styling.
+
+## Migration Process
+
+### Step 1: Analyze Current Component
+1. Identify all CSS classes used in the component
+2. Map CSS properties to Chakra UI style props
+3. Plan component structure with Chakra UI components
+
+### Step 2: Update Imports
+```typescript
+// Remove CSS import
+- import './ComponentName.css';
+
+// Add Chakra UI imports
++ import { Box, Flex, Heading, Text, Button, Input } from '@chakra-ui/react';
+```
+
+### Step 3: Replace HTML Elements
+
+#### Layout Elements
+```typescript
+// Before
+<div className="container">
+  <div className="content">
+
+// After
+<Box>
+  <Flex>
+```
+
+#### Typography Elements
+```typescript
+// Before
+<h2>Title</h2>
+<p>Description</p>
+<span>Label</span>
+
+// After
+<Heading as="h2">Title</Heading>
+<Text>Description</Text>
+<Text>Label</Text>
+```
+
+#### Form Elements
+```typescript
+// Before
+<label htmlFor="field">Label</label>
+<input type="text" id="field" />
+
+// After
+<Field.Root>
+  <Field.Label htmlFor="field">Label</Field.Label>
+  <Input type="text" id="field" />
+</Field.Root>
+```
+
+#### Interactive Elements
+```typescript
+// Before
+<button onClick={handler}>Click me</button>
+
+// After
+<Button onClick={handler}>Click me</Button>
+```
+
+### Step 4: Convert CSS Properties
+
+#### Common CSS to Chakra UI Mappings
+
+```typescript
+// Layout
+display: flex → <Flex>
+display: grid → <Grid>
+position: fixed → position="fixed"
+top: 0 → top="0"
+left: 0 → left="0"
+width: 100% → w="100%"
+height: 100vh → h="100vh"
+
+// Spacing
+margin: 20px → m="20px"
+margin-top: 10px → mt="10px"
+padding: 30px → p="30px"
+padding-left: 5px → pl="5px"
+
+// Colors
+background-color: #1a1a1a → bg="#1a1a1a"
+color: #e0e0e0 → color="#e0e0e0"
+border: 1px solid #444 → border="1px solid #444"
+
+// Typography
+font-size: 1.2em → fontSize="1.2em"
+font-weight: bold → fontWeight="bold"
+text-align: center → textAlign="center"
+text-transform: uppercase → textTransform="uppercase"
+
+// Effects
+box-shadow: 0 4px 15px rgba(0,0,0,0.5) → boxShadow="0 4px 15px rgba(0,0,0,0.5)"
+border-radius: 8px → borderRadius="8px"
+opacity: 0.5 → opacity="0.5"
+
+// Flexbox
+justify-content: center → justifyContent="center"
+align-items: center → alignItems="center"
+flex-direction: column → flexDirection="column"
+gap: 10px → gap="10px"
+```
+
+### Step 5: Handle Special Cases
+
+#### Hover States
+```typescript
+// Before (CSS)
+button:hover {
+  background-color: #3700b3;
+}
+
+// After (Chakra UI)
+<Button _hover={{ bg: '#3700b3' }}>
+```
+
+#### Disabled States
+```typescript
+// Before
+<button disabled={condition}>
+
+// After
+<Button disabled={condition}>
+```
+
+#### Transitions
+```typescript
+// Before (CSS)
+transition: background-color 0.3s;
+
+// After (Chakra UI)
+<Button transition="background-color 0.3s">
+```
+
+### Step 6: Clean Up
+1. Remove the CSS file: `rm ComponentName.css`
+2. Verify all styles are properly converted
+3. Test component functionality
+4. Check for any remaining className references
+
+## Established Color Palette
+
+Use these consistent colors across all components:
+
+```typescript
+// Backgrounds
+bg="#1a1a1a"  // Main background
+bg="#2a2a2a"  // Card/panel background
+bg="rgba(0, 0, 0, 0.75)"  // Modal backdrop
+
+// Text
+color="#e0e0e0"  // Main text
+color="#a0a0a0"  // Secondary text
+color="#fff"     // White text
+color="#cf6679"  // Error text
+color="#03dac6"  // Success text
+color="#bb86fc"  // Link/accent text
+
+// Borders
+border="1px solid #444"
+border="1px solid #555"
+```
+
+## Common Component Patterns
+
+### Modal Pattern
+```typescript
+<Box
+  position="fixed"
+  top="0"
+  left="0"
+  width="100%"
+  height="100%"
+  bg="rgba(0, 0, 0, 0.75)"
+  display="flex"
+  justifyContent="center"
+  alignItems="center"
+  zIndex="1000"
+  onClick={onClose}
+>
+  <Box
+    bg="#2a2a2a"
+    p="30px"
+    borderRadius="8px"
+    border="1px solid #555"
+    boxShadow="0 5px 20px rgba(0,0,0,0.5)"
+    onClick={e => e.stopPropagation()}
+  >
+    {/* Modal content */}
+  </Box>
+</Box>
+```
+
+### Form Field Pattern
+```typescript
+<Field.Root mb="16px" textAlign="left">
+  <Field.Label htmlFor="fieldName" fontSize="0.9rem" color="#a0a0a0" mb="8px">
+    Label Text
+  </Field.Label>
+  <Input
+    id="fieldName"
+    w="100%"
+    p="10px"
+    bg="#1a1a1a"
+    border="1px solid #444"
+    borderRadius="4px"
+    color="#e0e0e0"
+    boxSizing="border-box"
+  />
+</Field.Root>
+```
+
+### Button Pattern
+```typescript
+<Button
+  w="100%"
+  p="12px"
+  mt="16px"
+  border="none"
+  borderRadius="4px"
+  bg="#6200ee"
+  color="white"
+  fontSize="1rem"
+  cursor="pointer"
+  _hover={{ bg: '#3700b3' }}
+  transition="background-color 0.3s"
+  disabled={condition}
+>
+  Button Text
+</Button>
+```
+
+## Validation Checklist
+
+After refactoring, verify:
+
+- [ ] No CSS imports remain
+- [ ] No className attributes remain
+- [ ] All HTML elements replaced with Chakra UI components
+- [ ] All styles converted to Chakra UI props
+- [ ] Hover states implemented with `_hover`
+- [ ] Disabled states use `disabled` prop
+- [ ] Colors match established palette
+- [ ] Component functionality preserved
+- [ ] CSS file deleted
+- [ ] No TypeScript errors

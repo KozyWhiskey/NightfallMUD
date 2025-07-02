@@ -1,5 +1,5 @@
 // client/src/components/Header.tsx
-import './Header.css';
+import { Flex, Box, Heading, Button } from '@chakra-ui/react';
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -9,18 +9,46 @@ interface HeaderProps {
 
 export function Header({ isLoggedIn, onLogout }: HeaderProps) {
   return (
-    <header className="app-header">
-      <div className="header-title">
-        <h1>NightfallMUD</h1>
-      </div>
-      <div className="header-actions">
+    <Flex
+      as="header"
+      position="fixed"
+      top={0}
+      left={0}
+      w="100%"
+      h="50px"
+      bg="gray.900"
+      borderBottom="1px solid"
+      borderColor="gray.700"
+      alignItems="center"
+      justifyContent="space-between"
+      px="20px"
+      boxSizing="border-box"
+      zIndex={1000}
+      color="gray.100"
+    >
+      <Box>
+        <Heading as="h1" m={0} fontSize="1.5rem" fontWeight={500}>
+          NightfallMUD
+        </Heading>
+      </Box>
+      <Flex gap="15px">
         {isLoggedIn && (
-          <button onClick={onLogout} className="header-button">
+          <Button
+            px="16px"
+            py="8px"
+            bg="gray.700"
+            border="1px solid"
+            borderColor="gray.600"
+            color="gray.100"
+            borderRadius="md"
+            _hover={{ bg: 'gray.600' }}
+            onClick={onLogout}
+          >
             Logout
-          </button>
+          </Button>
         )}
         {/* We can add other buttons like 'Help' or 'Settings' here later */}
-      </div>
-    </header>
+      </Flex>
+    </Flex>
   );
 }

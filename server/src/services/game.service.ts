@@ -1,4 +1,3 @@
-
 // server/src/services/game.service.ts
 import { GameEngine, Command, GameEvent } from '../game/gameEngine';
 import { ipcEmitter } from './ipc.emitter';
@@ -53,3 +52,4 @@ class GameService {
 }
 
 export const gameService = new GameService();
+export const gameEngine = gameService['gameEngine'];

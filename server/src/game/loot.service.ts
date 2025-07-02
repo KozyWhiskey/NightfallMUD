@@ -3,6 +3,7 @@ import { PrismaClient, Mob, Prisma } from '@prisma/client';
 import { gameEventEmitter, MobDefeatedPayload } from './game.emitter';
 import { ItemGenerationService } from './item-generator.service';
 import type { GameEvent } from './gameEngine';
+import { gameEngine } from '../services/game.service';
 
 interface LootDrop {
   generatesRandom?: boolean;
@@ -55,6 +56,12 @@ export class LootService {
     const itemsWereDropped = await this.generateAndPlaceLoot(mob, roomId);
     if (itemsWereDropped) {
       events.push({ target: 'room', type: 'message', payload: { roomId, message: `The ${mob.name} drops some loot!`, exclude: [] }});
+      // Send a game update to all players in the room
+      const allRoomCharacters = await gameEngine.getCharactersInRoom(roomId);
+      for (const char of allRoomCharacters) {
+        const gameUpdate = await gameEngine.createFullGameUpdateEvent(char.id, 'Loot has appeared in the room.');
+        events.push(gameUpdate);
+      }
     }
 
     const goldDropped = this.calculateGoldDrop(mob);

@@ -1,6 +1,6 @@
 // client/src/components/StatsPanel.tsx
 import { useGameStore } from '../stores/useGameStore';
-import './StatsPanel.css';
+import { Box, Heading, Text, Button, Flex } from '@chakra-ui/react';
 
 interface StatsPanelProps {
   onLevelUpClick: () => void;
@@ -16,31 +16,31 @@ export function StatsPanel({ onLevelUpClick }: StatsPanelProps) {
   }
 
   const readyToLevelUp = player.unspentStatPoints > 0;
+  const panelBg = 'gray.900';
 
   return (
-    // The panel content is now focused only on attributes
-    <div className="stats-panel-content">
-      {readyToLevelUp && (
-        <button className="level-up-button" onClick={onLevelUpClick}>
-          Level Up! ({player.unspentStatPoints} points available)
-        </button>
-      )}
-
-      <div className="core-stats">
-        <h4>Attributes</h4>
-        <p>STR: {player.strength}</p>
-        <p>DEX: {player.dexterity}</p>
-        <p>CON: {player.constitution}</p>
-        <p>INT: {player.intelligence}</p>
-        <p>WIS: {player.wisdom}</p>
-        <p>CHA: {player.charisma}</p>
-        <p>DEF: {player.defense}</p>
-        <p>RES: {player.resolve}</p>
-      </div>
-
-      <div className="other-info">
-        <p>Gold: {player.gold}</p>
-      </div>
-    </div>
+    <Box bg={panelBg} borderRadius="lg" boxShadow="md" p={4} minH="200px">
+      <Flex direction="column" gap={3}>
+        {readyToLevelUp && (
+          <Button colorScheme="yellow" onClick={onLevelUpClick} alignSelf="flex-start">
+            Level Up! ({player.unspentStatPoints} points available)
+          </Button>
+        )}
+        <Box>
+          <Heading as="h4" size="sm" mb={2} color="blue.200">Attributes</Heading>
+          <Text>STR: {player.strength}</Text>
+          <Text>DEX: {player.dexterity}</Text>
+          <Text>CON: {player.constitution}</Text>
+          <Text>INT: {player.intelligence}</Text>
+          <Text>WIS: {player.wisdom}</Text>
+          <Text>CHA: {player.charisma}</Text>
+          <Text>DEF: {player.defense}</Text>
+          <Text>RES: {player.resolve}</Text>
+        </Box>
+        <Box>
+          <Text color="yellow.200">Gold: {player.gold}</Text>
+        </Box>
+      </Flex>
+    </Box>
   );
 }

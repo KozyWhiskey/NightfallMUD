@@ -1,76 +1,352 @@
 // client/src/components/MapPanel.tsx
-import { useMemo } from 'react';
+import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
+import { Box, Heading, Text } from '@chakra-ui/react';
 import { useGameStore } from '../stores/useGameStore';
 import type { Room } from '../types';
-import './MapPanel.css';
+
+const MIN_GRID_SIZE = 7;
+const MAX_GRID_SIZE = 11;
+const CELL_SIZE = 30; // smaller room cells
+const CELL_GAP = 8; // smaller gaps
 
 export function MapPanel() {
-  // --- THIS IS THE FIX ---
-  // Get the current room and all rooms in the zone directly from our global store.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [gridSize, setGridSize] = useState(MIN_GRID_SIZE);
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+
   const currentRoom = useGameStore(state => state.room);
   const allRoomsInZone = useGameStore(state => state.zoneRooms);
+  const sendCommand = useGameStore(state => state.sendCommand);
+  const inCombat = useGameStore(state => state.inCombat);
 
-  // useMemo will re-calculate the map grid only when the room data changes
-  const mapData = useMemo(() => {
-    // The rest of this function is unchanged, but now uses live data
-    if (!currentRoom || !allRoomsInZone || allRoomsInZone.length === 0) {
-      return null;
+  useLayoutEffect(() => {
+    const handleResize = () => {
+      if (panelRef.current) {
+        const { width, height } = panelRef.current.getBoundingClientRect();
+        const newGridWidth = Math.floor(width / (CELL_SIZE + CELL_GAP));
+        const newGridHeight = Math.floor(height / (CELL_SIZE + CELL_GAP));
+        const newGridSize = Math.max(
+          MIN_GRID_SIZE,
+          Math.min(MAX_GRID_SIZE, newGridWidth, newGridHeight),
+        );
+        setGridSize(newGridSize);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (panelRef.current) {
+      resizeObserver.observe(panelRef.current);
     }
 
-    const currentZ = currentRoom.z;
-    const roomsOnSameFloor = allRoomsInZone.filter(r => r.z === currentZ);
+    handleResize();
 
-    if (roomsOnSameFloor.length === 0) return null;
-
-    // Determine the boundaries of the map
-    const xCoords = roomsOnSameFloor.map(r => r.x);
-    const yCoords = roomsOnSameFloor.map(r => r.y);
-    const minX = Math.min(...xCoords);
-    const maxX = Math.max(...xCoords);
-    const minY = Math.min(...yCoords);
-    const maxY = Math.max(...yCoords);
-
-    const width = maxX - minX + 1;
-    const height = maxY - minY + 1;
-
-    // Create a 2D array representing the grid, filled with nulls
-    const grid: (Room | null)[][] = Array(height).fill(null).map(() => Array(width).fill(null));
-
-    // Place each room into its correct grid cell based on its coordinates
-    roomsOnSameFloor.forEach(r => {
-      const gridX = r.x - minX;
-      const gridY = maxY - r.y; // Invert Y so that positive Y is "up"
-      if (grid[gridY] && grid[gridY][gridX] === null) {
-        grid[gridY][gridX] = r;
+    return () => {
+      if (panelRef.current) {
+        resizeObserver.unobserve(panelRef.current);
       }
+    };
+  }, []);
+
+  const visibleRooms = useMemo(() => {
+    if (!currentRoom || !allRoomsInZone.length) return [];
+
+    const halfGrid = Math.floor(gridSize / 2);
+    const startX = currentRoom.x - halfGrid;
+    const startY = currentRoom.y - halfGrid;
+    const endX = startX + gridSize - 1;
+    const endY = startY + gridSize - 1;
+
+    const filteredRooms = allRoomsInZone.filter(
+      room =>
+        room.x >= startX &&
+        room.x <= endX &&
+        room.y >= startY &&
+        room.y <= endY &&
+        room.z === currentRoom.z,
+    );
+    return filteredRooms;
+  }, [currentRoom, allRoomsInZone, gridSize]);
+
+  const roomPositions = useMemo(() => {
+    if (!currentRoom) return new Map();
+    const halfGrid = Math.floor(gridSize / 2);
+    // Center the current room in the SVG viewBox
+    const svgWidth = gridSize * (CELL_SIZE + CELL_GAP);
+    const svgHeight = gridSize * (CELL_SIZE + CELL_GAP);
+    const centerX = svgWidth / 2;
+    const centerY = svgHeight / 2;
+
+    const positions = new Map<string, { x: number; y: number }>();
+    visibleRooms.forEach(room => {
+      positions.set(room.id, {
+        x: centerX + (room.x - currentRoom.x) * (CELL_SIZE + CELL_GAP),
+        // Invert Y axis for north/south orientation
+        y: centerY - (room.y - currentRoom.y) * (CELL_SIZE + CELL_GAP),
+      });
     });
+    return positions;
+  }, [visibleRooms, currentRoom, gridSize]);
 
-    return { grid, currentRoomId: currentRoom.id };
-  }, [currentRoom, allRoomsInZone]);
+  const lines = useMemo(() => {
+    const drawnLines = new Set<string>();
+    const calculatedLines = visibleRooms
+      .flatMap(room => {
+        const roomPos = roomPositions.get(room.id);
+        if (!roomPos) return [];
 
-  if (!mapData) {
+        return Object.values(room.exits).map(exitId => {
+          const neighbor = allRoomsInZone.find(r => r.id === exitId);
+          if (!neighbor) return null;
+
+          const neighborPos = roomPositions.get(neighbor.id);
+          if (!neighborPos) return null;
+
+          const lineKey = [room.id, neighbor.id].sort().join('-');
+          if (drawnLines.has(lineKey)) return null;
+          drawnLines.add(lineKey);
+
+          return {
+            key: lineKey,
+            x1: roomPos.x,
+            y1: roomPos.y,
+            x2: neighborPos.x,
+            y2: neighborPos.y,
+          };
+        });
+      })
+      .filter(line => line !== null);
+    return calculatedLines;
+  }, [visibleRooms, roomPositions, allRoomsInZone]);
+
+  const getAdjacentDirection = (targetRoom: Room): string | null => {
+    if (!currentRoom) return null;
+    
+    const exits = currentRoom.exits as { [key: string]: string };
+    for (const [direction, roomId] of Object.entries(exits)) {
+      if (roomId === targetRoom.id) {
+        return direction;
+      }
+    }
+    return null;
+  };
+
+  const handleRoomClick = (room: Room) => {
+    const direction = getAdjacentDirection(room);
+    if (direction) {
+      sendCommand({ action: 'move', payload: direction });
+    }
+  };
+
+  const handleMouseEnter = (room: Room, e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({
+      text: room.name,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTooltip(null);
+  };
+
+  if (!currentRoom) {
     return (
-      <div className="map-panel">
-        <p className="map-loading-text">Loading map...</p>
-      </div>
+      <Box
+        ref={panelRef}
+        p="20px"
+        bg="gray.800"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="gray.700"
+        h="30vh"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Text color="gray.400" fontSize="1.1em">Loading map...</Text>
+      </Box>
     );
   }
 
   return (
-    <div className="map-panel">
-      <div className="map-grid" style={{ gridTemplateColumns: `repeat(${mapData.grid[0].length}, 24px)` }}>
-        {mapData.grid.map((row, y) => (
-            row.map((cell: Room | null, x: number) => (
-              <div
-                key={`${x}-${y}`}
-                className={`map-cell ${cell ? 'is-room' : ''} ${cell?.id === mapData.currentRoomId ? 'current-room' : ''}`}
-                title={cell?.name || 'Unexplored'}
-              >
-                {cell ? (cell.id === mapData.currentRoomId ? '*' : '■') : ''}
-              </div>
-            ))
-        ))}
-      </div>
-    </div>
+    <Box
+      ref={panelRef}
+      p="20px"
+      bg="gray.800"
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="gray.700"
+      h="30vh"
+      display="flex"
+      flexDirection="column"
+    >
+      <Heading as="h3" mb="15px" color="gray.100" fontSize="1.2em" textAlign="center">
+        {currentRoom.name}
+      </Heading>
+      <Box flex="1" position="relative" overflow="hidden">
+        <svg 
+          viewBox={`0 0 ${gridSize * (CELL_SIZE + CELL_GAP)} ${gridSize * (CELL_SIZE + CELL_GAP)}`}
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            background: 'radial-gradient(ellipse at center, #23232a 60%, #18181b 100%)',
+            filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.35))',
+          }}
+        >
+          <defs>
+            {/* Pulse animation for current room */}
+            <radialGradient id="currentRoomGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="60%" stopColor="#b6e0fe" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#b6e0fe" stopOpacity="0" />
+            </radialGradient>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="7" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="combatGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          {/* Connection lines */}
+          {lines.map(line => (
+            <line 
+              key={line.key}
+              x1={line.x1} 
+              y1={line.y1} 
+              x2={line.x2} 
+              y2={line.y2} 
+              stroke="#4b5563" // blue-gray, low opacity
+              strokeWidth="2.2"
+              opacity="0.32"
+            />
+          ))}
+          {/* Room nodes */}
+          {visibleRooms.map(room => {
+            const pos = roomPositions.get(room.id);
+            if (!pos) return null;
+            const isAdjacent = getAdjacentDirection(room) !== null;
+            const isCurrentRoom = room.id === currentRoom.id;
+            const hasUp = !!room.exits['up'];
+            const hasDown = !!room.exits['down'];
+            // Node style
+            let fillColor = "#23232a"; // deep gray
+            let strokeColor = "#444";
+            let strokeWidth = 2;
+            let filter = '';
+            let cursor = 'default';
+            let animatePulse = false;
+            if (isCurrentRoom && inCombat) {
+              fillColor = "#7f1d1d"; // deep red
+              strokeColor = "#b91c1c";
+              strokeWidth = 4;
+              filter = 'url(#combatGlow)';
+              animatePulse = true;
+            } else if (isCurrentRoom) {
+              fillColor = "#b6e0fe"; // pale blue
+              strokeColor = "#e0e0e0";
+              strokeWidth = 4;
+              filter = 'url(#glow)';
+              animatePulse = true;
+            } else if (isAdjacent) {
+              fillColor = "#3a4a4a"; // gloom
+              strokeColor = "#666";
+              strokeWidth = 3;
+              cursor = 'pointer';
+            }
+            return (
+              <g key={room.id}>
+                {/* Pulse animation for current room */}
+                {animatePulse && (
+                  <circle
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={CELL_SIZE / 2 + 7}
+                    fill="url(#currentRoomGlow)"
+                  >
+                    <animate
+                      attributeName="r"
+                      values={`${CELL_SIZE / 2 + 7};${CELL_SIZE / 2 + 13};${CELL_SIZE / 2 + 7}`}
+                      dur="2.2s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.18;0.08;0.18"
+                      dur="2.2s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={CELL_SIZE / 2}
+                  fill={fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  style={{ cursor, transition: 'fill 0.2s, stroke 0.2s' }}
+                  filter={filter}
+                  onClick={() => handleRoomClick(room)}
+                  onMouseEnter={(e) => handleMouseEnter(room, e)}
+                  onMouseLeave={handleMouseLeave}
+                />
+                {/* Up/Down indicators */}
+                {hasUp && (
+                  <text
+                    x={pos.x}
+                    y={pos.y - 2}
+                    fill="#3b82f6" // dimmed blue
+                    fontSize="12"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    opacity="0.5"
+                  >▲</text>
+                )}
+                {hasDown && (
+                  <text
+                    x={pos.x}
+                    y={pos.y + 8}
+                    fill="#3b82f6"
+                    fontSize="12"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    opacity="0.5"
+                  >▼</text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+        {/* Tooltip */}
+        {tooltip && (
+          <Box
+            position="fixed"
+            left={tooltip.x}
+            top={tooltip.y}
+            bg="gray.900"
+            color="gray.100"
+            px="3"
+            py="2"
+            borderRadius="md"
+            fontSize="0.9em"
+            zIndex={2000}
+            pointerEvents="none"
+            boxShadow="md"
+          >
+            {tooltip.text}
+          </Box>
+        )}
+      </Box>
+    </Box>
   );
 }

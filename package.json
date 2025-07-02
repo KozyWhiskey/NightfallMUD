@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@chakra-ui/select": "^2.1.2"
+  }
+}

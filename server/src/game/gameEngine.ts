@@ -6,6 +6,9 @@ import { CombatManager } from './combat.manager';
 import { LootService } from './loot.service';
 import { ProgressionService } from './progression.service';
 import { AttributeService } from './attribute.service';
+import { DeathService } from './services/death.service';
+import { gameEventEmitter } from './game.emitter';
+import { allRoomTemplates } from '../data';
 
 // --- Import all command handlers ---
 import { LookCommand } from './commands/look.command';
@@ -30,10 +33,12 @@ export class GameEngine {
   private lootService: LootService;
   private progressionService: ProgressionService;
   private attributeService: AttributeService;
+  private deathService: DeathService;
 
   constructor(broadcastCallback: (events: GameEvent[]) => void) {
     this.attributeService = new AttributeService();
-    this.combatManager = new CombatManager(broadcastCallback, this.attributeService);
+    this.deathService = new DeathService(this.prisma, broadcastCallback);
+    this.combatManager = new CombatManager(broadcastCallback, this.attributeService, this.deathService);
     
     this.lootService = new LootService(this.prisma, broadcastCallback);
     this.progressionService = new ProgressionService(this.prisma, broadcastCallback);
@@ -104,9 +109,20 @@ export class GameEngine {
     });
     const mobsInRoom = await this.prisma.mob.findMany({ where: { roomId: character.currentRoomId }});
 
+    // Convert room templates to the format expected by the client
+    const zoneRooms = Object.values(allRoomTemplates).map(roomTemplate => ({
+      id: roomTemplate.id,
+      name: roomTemplate.name,
+      description: roomTemplate.description,
+      exits: roomTemplate.exits,
+      x: roomTemplate.x,
+      y: roomTemplate.y,
+      z: roomTemplate.z,
+    }));
+
     return {
       target: characterId, type: 'gameUpdate',
-      payload: { message, player: character, room: character.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: character.inventory, mobs: mobsInRoom, inCombat: this.combatManager.isCharacterInCombat(characterId) },
+      payload: { message, player: character, room: character.room, players: playersInRoom.map(p => p.name), roomItems: itemsInRoom, inventory: character.inventory, mobs: mobsInRoom, inCombat: this.combatManager.isCharacterInCombat(characterId), zoneRooms },
     };
   }
 

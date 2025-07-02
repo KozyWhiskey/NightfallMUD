@@ -1,0 +1,159 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+# Chakra UI v3 Guidelines
+
+This project is built using Chakra UI v3 and should always use the ChakraUI v3 patterns and syntax. The full documentation is found at https://chakra-ui.com/llms-full.txt.
+
+## Core Principles
+
+- **No external CSS files**: All styling should be done through Chakra UI components and style props
+- **Use Chakra UI v3 Field API**: For forms, use `Field.Root`, `Field.Label`, and `Field.Input` instead of `FormControl` and `FormLabel`
+- **Style props over className**: Use Chakra UI style props instead of CSS classes
+- **Consistent color scheme**: Use the established dark theme colors (#1a1a1a, #2a2a2a, #444, #e0e0e0, etc.)
+
+## Component Usage Patterns
+
+### Layout Components
+- Use `Box` for containers and div-like elements
+- Use `Flex` for flexbox layouts (replaces div with display: flex)
+- Use `Grid` for grid layouts when needed
+
+### Typography
+- Use `Heading` for all heading elements (h1, h2, h3, etc.)
+- Use `Text` for paragraphs and text content
+- Use `strong` tags within `Text` for bold text
+
+### Forms
+- Use `Field.Root` as the form field container
+- Use `Field.Label` for labels (replaces FormLabel)
+- Use `Input` for text inputs
+- Use `Button` for all buttons (not HTML button elements)
+
+### Interactive Elements
+- Use `Button` with `disabled` prop (not `isDisabled`)
+- Use `_hover` prop for hover states
+- Use `cursor` prop for cursor styling
+
+## Styling Patterns
+
+### Colors
+```typescript
+// Background colors
+bg="#1a1a1a"  // Main background
+bg="#2a2a2a"  // Card/panel background
+bg="#444"     // Border color
+
+// Text colors
+color="#e0e0e0"  // Main text
+color="#a0a0a0"  // Secondary text
+color="#fff"     // White text
+color="#cf6679"  // Error text
+color="#03dac6"  // Success text
+color="#bb86fc"  // Link/accent text
+```
+
+### Spacing
+- Use Chakra UI spacing scale: `p="40px"`, `m="20px"`, `gap="10px"`
+- Use `my`, `mx`, `mt`, `mb`, `ml`, `mr` for specific margin directions
+- Use `py`, `px`, `pt`, `pb`, `pl`, `pr` for specific padding directions
+
+### Layout Properties
+```typescript
+// Flexbox
+justifyContent="center" | "space-between" | "space-around"
+alignItems="center" | "flex-start" | "flex-end"
+flexDirection="row" | "column"
+
+// Positioning
+position="fixed" | "absolute" | "relative"
+top="0" | left="0" | right="0" | bottom="0"
+zIndex="1000"
+
+// Sizing
+w="100%" | maxW="400px" | minW="30px"
+h="100vh" | height="100%"
+```
+
+## Migration Checklist
+
+When refactoring components from CSS to Chakra UI v3:
+
+1. Remove CSS import: `import './Component.css'`
+2. Replace `div` with `Box` or `Flex`
+3. Replace `h1`, `h2`, etc. with `Heading`
+4. Replace `p` with `Text`
+5. Replace `button` with `Button`
+6. Replace `input` with `Input`
+7. Convert CSS classes to style props
+8. Use `Field.Root` and `Field.Label` for forms
+9. Delete the CSS file after refactoring
+
+## Common Patterns
+
+### Modal/Overlay
+```typescript
+<Box
+  position="fixed"
+  top="0"
+  left="0"
+  width="100%"
+  height="100%"
+  bg="rgba(0, 0, 0, 0.75)"
+  display="flex"
+  justifyContent="center"
+  alignItems="center"
+  zIndex="1000"
+>
+  <Box
+    bg="#2a2a2a"
+    p="30px"
+    borderRadius="8px"
+    border="1px solid #555"
+    boxShadow="0 5px 20px rgba(0,0,0,0.5)"
+  >
+    {/* Modal content */}
+  </Box>
+</Box>
+```
+
+### Form Fields
+```typescript
+<Field.Root mb="16px" textAlign="left">
+  <Field.Label htmlFor="fieldName" fontSize="0.9rem" color="#a0a0a0" mb="8px">
+    Label Text
+  </Field.Label>
+  <Input
+    id="fieldName"
+    w="100%"
+    p="10px"
+    bg="#1a1a1a"
+    border="1px solid #444"
+    borderRadius="4px"
+    color="#e0e0e0"
+    boxSizing="border-box"
+  />
+</Field.Root>
+```
+
+### Button Styling
+```typescript
+<Button
+  w="100%"
+  p="12px"
+  mt="16px"
+  border="none"
+  borderRadius="4px"
+  bg="#6200ee"
+  color="white"
+  fontSize="1rem"
+  cursor="pointer"
+  _hover={{ bg: '#3700b3' }}
+  transition="background-color 0.3s"
+  disabled={condition}
+>
+  Button Text
+</Button>
+```

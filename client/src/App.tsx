@@ -4,7 +4,7 @@ import { Auth } from './components/Auth';
 import { Game } from './components/Game';
 import { CharacterSelect } from './components/CharacterSelect';
 import { Header } from './components/Header'; // <-- Import the new Header
-import './App.css';
+import { Box } from '@chakra-ui/react';
 
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('nightfall-token'));
@@ -38,21 +38,21 @@ function App() {
 
   const renderContent = () => {
     if (token && selectedCharacterId) {
-      return <Game token={token} characterId={selectedCharacterId} onSwitchCharacter={handleSwitchCharacter} />;
+      return <Game token={token} characterId={selectedCharacterId} />;
     } else if (token) {
-      return <CharacterSelect token={token} onCharacterSelect={handleCharacterSelect} />;
+      return <CharacterSelect token={token} onCharacterSelect={handleCharacterSelect} onLogout={handleLogout} />;
     } else {
       return <Auth onLoginSuccess={handleLoginSuccess} />;
     }
   };
 
   return (
-    <div className="App">
+    <Box className="App">
       <Header isLoggedIn={!!token} onLogout={handleLogout} />
-      <main className="app-content">
+      <Box as="main" pt="50px">
         {renderContent()}
-      </main>
-    </div>
+      </Box>
+    </Box>
   );
 }
 

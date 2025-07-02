@@ -1,0 +1,109 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Structure Guide
+
+## Overview
+NightfallMUD is a full-stack MUD (Multi-User Dungeon) game with a React/TypeScript client and Node.js server.
+
+## Client Structure
+
+### Main Entry Points
+- [main.tsx](mdc:client/src/main.tsx) - Application entry point
+- [App.tsx](mdc:client/src/App.tsx) - Root component
+- [Game.tsx](mdc:client/src/components/Game.tsx) - Main game interface
+
+### Component Organization
+All components are located in [client/src/components/](mdc:client/src/components/) and follow these patterns:
+
+#### UI Components (Chakra UI v3)
+- [Auth.tsx](mdc:client/src/components/Auth.tsx) - Authentication interface
+- [CharacterCreate.tsx](mdc:client/src/components/CharacterCreate.tsx) - Character creation
+- [CharacterSelect.tsx](mdc:client/src/components/CharacterSelect.tsx) - Character selection
+- [Header.tsx](mdc:client/src/components/Header.tsx) - Game header
+- [LevelUpModal.tsx](mdc:client/src/components/LevelUpModal.tsx) - Level up interface
+
+#### Game Interface Components
+- [AvatarPanel.tsx](mdc:client/src/components/AvatarPanel.tsx) - Character avatar display
+- [CombatPanel.tsx](mdc:client/src/components/CombatPanel.tsx) - Combat interface
+- [InputPanel.tsx](mdc:client/src/components/InputPanel.tsx) - Command input
+- [InventoryPanel.tsx](mdc:client/src/components/InventoryPanel.tsx) - Inventory management
+- [MapPanel.tsx](mdc:client/src/components/MapPanel.tsx) - Game map display
+- [MessageLogPanel.tsx](mdc:client/src/components/MessageLogPanel.tsx) - Game messages
+- [MobCard.tsx](mdc:client/src/components/MobCard.tsx) - Enemy/mob display
+- [RoomInfoPanel.tsx](mdc:client/src/components/RoomInfoPanel.tsx) - Room information
+- [StatsPanel.tsx](mdc:client/src/components/StatsPanel.tsx) - Character statistics
+- [VitalsPanel.tsx](mdc:client/src/components/VitalsPanel.tsx) - Health/mana display
+
+#### Utility Components
+- [GameTooltip.tsx](mdc:client/src/components/GameTooltip.tsx) - Tooltip system
+- [TabbedView.tsx](mdc:client/src/components/TabbedView.tsx) - Tabbed interface wrapper
+
+### State Management
+- [useGameStore.ts](mdc:client/src/stores/useGameStore.ts) - Zustand store for game state
+
+### Type Definitions
+- [types.ts](mdc:client/src/types.ts) - TypeScript interfaces and types
+
+### Styling
+- [theme.ts](mdc:client/src/theme.ts) - Chakra UI theme configuration
+- [App.css](mdc:client/src/App.css) - Global styles (minimal)
+- [index.css](mdc:client/src/index.css) - Base styles
+
+## Server Structure
+
+### Main Entry Point
+- [server.ts](mdc:server/src/server.ts) - Server entry point
+
+### Game Logic
+- [gameEngine.ts](mdc:server/src/game/gameEngine.ts) - Core game engine
+- [combat.manager.ts](mdc:server/src/game/combat.manager.ts) - Combat system
+- [game.emitter.ts](mdc:server/src/game/game.emitter.ts) - Event system
+
+### Commands
+All commands are in [server/src/game/commands/](mdc:server/src/game/commands/):
+- [attack.command.ts](mdc:server/src/game/commands/attack.command.ts)
+- [move.command.ts](mdc:server/src/game/commands/move.command.ts)
+- [look.command.ts](mdc:server/src/game/commands/look.command.ts)
+- [inventory.command.ts](mdc:server/src/game/commands/inventory.command.ts)
+- And more...
+
+### Services
+- [game.service.ts](mdc:server/src/services/game.service.ts) - Game service layer
+- [web.service.ts](mdc:server/src/services/web.service.ts) - Web service layer
+
+### Data Layer
+- [prisma/schema.prisma](mdc:server/prisma/schema.prisma) - Database schema
+- [data/](mdc:server/src/data/) - Game data (items, zones, etc.)
+
+## Development Guidelines
+
+### Component Naming
+- Use PascalCase for component files: `ComponentName.tsx`
+- Use descriptive names that indicate the component's purpose
+- Group related components together
+
+### File Organization
+- Keep components in the `components/` directory
+- Use subdirectories for complex feature sets
+- Keep related files close together
+
+### Import Patterns
+```typescript
+// React imports first
+import { useState, useEffect } from 'react';
+
+// Third-party libraries
+import { Box, Flex, Button } from '@chakra-ui/react';
+
+// Local imports
+import { useGameStore } from '../stores/useGameStore';
+import type { Player } from '../types';
+```
+
+### State Management
+- Use Zustand for global state ([useGameStore.ts](mdc:client/src/stores/useGameStore.ts))
+- Use local state for component-specific data
+- Keep state as close to where it's used as possible

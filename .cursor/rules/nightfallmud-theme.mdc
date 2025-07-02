@@ -1,0 +1,40 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# NightfallMUD Theme & UI Design Principles
+
+## World & Mood
+- The world of Vesper is in eternal twilight after the Nightfall, with the Gloom as a core threat. The tone is desperate, dark fantasy: oppressive, cold, and dangerous.
+
+## Global Theme ([client/src/theme.ts](mdc:client/src/theme.ts))
+- **Background:** Deep, cold vignette using a radial gradient from #18181b to #111112 for an oppressive, twilight feel. This is enforced globally via Chakra's `globalCss`.
+- **Text:** Muted light gray (`gray.100`) for readability in the gloom.
+- **Gloom Accent:** `#3a4a4a` is the core "Gloom" color, used for map, borders, and accents.
+- **Danger/Combat:** Deep, bloody reds (`danger.700`, `danger.500`) for threat and combat.
+- **Highlight:** Pale, ghostly blue (`pale.200`) for rare/important or "last light" elements.
+- **Gold:** For rare/important items or UI highlights.
+- **Fonts:** Gothic serif (`Merriweather, Georgia, serif`) for headings, modern sans-serif for body.
+- **Gray Palette:** Tuned for cold, desaturated, and moody UI elements.
+- **Theme tokens are available for use in any Chakra UI component.**
+- **All Chakra UI panels and components must use these tokens and design principles.**
+- **All new UI should be reviewed for mood and palette consistency.**
+
+## Map Panel ([client/src/components/MapPanel.tsx](mdc:client/src/components/MapPanel.tsx))
+- **Default rooms:** Deep gray (`#23232a`), low contrast.
+- **Adjacent rooms:** The "Gloom" color (`#3a4a4a`), muted and cold.
+- **Current room:** Pale, ghostly blue (`#b6e0fe`) with a faint, slow pulse and soft glow—never neon.
+- **Combat:** Deep, bloody red (`#7f1d1d`) with a subtle, slow pulse and shadow.
+- **Lines:** Blue-gray, low opacity for a misty, faded look.
+- **Up/Down indicators:** Dimmed blue, low opacity.
+- **SVG background:** Radial gradient for a subtle vignette, adding to the oppressive feel.
+- **Pulse and glow effects are implemented in the SVG for current/combat rooms.**
+
+## UI/UX Principles
+- No bright or neon colors; all highlights are muted, cold, or ghostly.
+- Panels, modals, and all UI elements should feel like they belong in a world of eternal twilight and creeping despair.
+- Use semantic tokens for "gloom," "danger," and "pale" highlights.
+- Favor subtle glows, pulses, and shadows over strong contrast.
+- All design choices should reinforce the sense of a world fighting against oblivion and the encroaching Gloom.
+- **All new UI and features must be checked for theme and mood consistency.**

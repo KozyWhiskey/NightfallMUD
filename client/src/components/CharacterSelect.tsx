@@ -1,7 +1,7 @@
 // client/src/components/CharacterSelect.tsx
 import { useState, useEffect, useCallback } from 'react';
 import { CharacterCreate } from './CharacterCreate';
-import './CharacterSelect.css';
+import { Box, VStack, HStack, Heading, Text } from '@chakra-ui/react';
 
 interface CharacterSummary {
   id: string;
@@ -42,35 +42,57 @@ export function CharacterSelect({ token, onCharacterSelect}: CharacterSelectProp
   }, [fetchCharacters]);
 
   if (isLoading) {
-    return <div className="character-select-container"><h2>Loading Characters...</h2></div>;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh" width="100vw" bg="gray.900" color="gray.100">
+        <Heading as="h2" size="lg">Loading Characters...</Heading>
+      </Box>
+    );
   }
 
   if (error) {
-    return <div className="character-select-container"><h2>Error: {error}</h2></div>;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh" width="100vw" bg="gray.900" color="gray.100">
+        <Heading as="h2" size="lg">Error: {error}</Heading>
+      </Box>
+    );
   }
 
   return (
-    <div className="character-select-container">
-      <div className="character-select-box">
-        <h1>Select a Character</h1>
+    <Box display="flex" justifyContent="center" alignItems="center" height="100vh" width="100vw" bg="gray.900" color="gray.100">
+      <Box w="100%" maxW="500px" bg="gray.800" p="40px" borderRadius="lg" boxShadow="lg" textAlign="center">
+        <Heading as="h1" size="lg" mb={6}>Select a Character</Heading>
         {characters.length > 0 ? (
           <>
-            <ul className="character-list">
+            <Box as="ul" p={0} m={0} style={{ listStyle: 'none' }}>
               {characters.map(char => (
-                <li key={char.id} onClick={() => onCharacterSelect(char.id)}>
-                  <span className="char-name">{char.name}</span>
-                  <span className="char-level">Level {char.level}</span>
-                </li>
+                <Box
+                  as="li"
+                  key={char.id}
+                  bg="gray.700"
+                  mb="10px"
+                  p="20px"
+                  borderRadius="md"
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  cursor="pointer"
+                  transition="background-color 0.2s, transform 0.2s"
+                  _hover={{ bg: 'gray.600', transform: 'scale(1.02)' }}
+                  onClick={() => onCharacterSelect(char.id)}
+                >
+                  <Text fontSize="1.2rem" fontWeight="bold">{char.name}</Text>
+                  <Text fontSize="0.9rem" color="gray.400">Level {char.level}</Text>
+                </Box>
               ))}
-            </ul>
-            <div className="character-create">
+            </Box>
+            <Box mt="30px" pt="30px" borderTop="1px solid" borderColor="gray.700">
               <CharacterCreate token={token} onCharacterCreated={fetchCharacters} />
-            </div>
+            </Box>
           </>
         ) : (
           <CharacterCreate token={token} onCharacterCreated={fetchCharacters} />
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

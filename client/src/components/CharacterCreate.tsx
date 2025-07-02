@@ -1,5 +1,7 @@
 // client/src/components/CharacterCreate.tsx
 import { useState } from 'react';
+import { Box, Input, Button, Heading } from '@chakra-ui/react';
+import { Field, NativeSelect } from '@chakra-ui/react';
 
 interface CharacterCreateProps {
   token: string;
@@ -37,7 +39,6 @@ export function CharacterCreate({ token, onCharacterCreated }: CharacterCreatePr
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        // Send both the name and the selected class
         body: JSON.stringify({ name, characterClass: selectedClass }),
       });
 
@@ -53,40 +54,43 @@ export function CharacterCreate({ token, onCharacterCreated }: CharacterCreatePr
   };
 
   return (
-    <div className="character-create">
-      <h3>Create Your Character</h3>
+    <Box bg="gray.900" borderRadius="lg" boxShadow="md" p={6} maxW="400px" mx="auto">
+      <Heading as="h3" size="md" mb={4} color="blue.200" letterSpacing="wide">Create Your Character</Heading>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="char-name">Character Name</label>
-          <input
-            type="text"
-            id="char-name"
+        <Field.Root required invalid={!!error} mb={4}>
+          <Field.Label>Character Name</Field.Label>
+          <Input
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
+            onChange={e => setName(e.target.value)}
             autoComplete="off"
+            bg="gray.800"
+            color="blue.100"
+            borderColor="gray.700"
+            _placeholder={{ color: 'gray.500' }}
           />
-        </div>
-
-        {/* --- NEW: Class Selection Dropdown --- */}
-        <div className="form-group">
-          <label htmlFor="char-class">Class</label>
-          <select
-            id="char-class"
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-          >
-            {availableClasses.map(className => (
-              <option key={className} value={className}>
-                {className.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {error && <p className="error-message">{error}</p>}
-        <button type="submit">Create Character</button>
+          {error && <Field.ErrorText>{error}</Field.ErrorText>}
+        </Field.Root>
+        <Field.Root required mb={4}>
+          <Field.Label>Class</Field.Label>
+          <NativeSelect.Root>
+            <NativeSelect.Field
+              value={selectedClass}
+              onChange={e => setSelectedClass(e.target.value)}
+              bg="gray.800"
+              color="blue.100"
+              borderColor="gray.700"
+            >
+              {availableClasses.map(className => (
+                <option key={className} value={className}>
+                  {className.replace('_', ' ')}
+                </option>
+              ))}
+            </NativeSelect.Field>
+            <NativeSelect.Indicator />
+          </NativeSelect.Root>
+        </Field.Root>
+        <Button type="submit" colorScheme="blue" width="100%">Create Character</Button>
       </form>
-    </div>
+    </Box>
   );
 }

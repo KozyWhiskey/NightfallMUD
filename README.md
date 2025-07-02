@@ -26,10 +26,13 @@ The entire codebase is written in TypeScript, with a Node.js backend powering th
     * Panels for `Vitals`, `Attributes`, `Equipped` items, `Backpack`, and a static `Map`.
     * Players can interact via both classic text commands and clickable UI elements.
     * "Hover-for-stats" tooltips on inventory and equipped items.
+    * **Chakra UI v3-based design system with a global, dark/gloomy NightfallMUD theme.**
+    * **MapPanel with pulse/glow effects and "Gloom" color palette.**
+    * **All UI and new features must follow the enforced theme and design tokens.**
 
 ## Built With
 
-* **Frontend:** React, Vite, TypeScript, Zustand
+* **Frontend:** React, Vite, TypeScript, Zustand, Chakra UI v3
 * **Backend:** Node.js, Express.js, TypeScript, `ws` (WebSockets)
 * **Database:** PostgreSQL with Prisma (Next-generation ORM)
 * **Authentication:** `bcrypt` (password hashing), `jsonwebtoken` (JWTs)
@@ -105,3 +108,4 @@ The project is now a robust platform. Future features will focus on expanding co
 * **Player Death & Respawn:** Create a meaningful consequence for reaching 0 HP.
 * **Magic & Skill System:** Implement class-specific abilities.
 * **Quest System:** Build out the "Quests" tab with NPCs, objectives, and rewards.
+* **UI/UX:** All new UI and features must follow the global NightfallMUD theme and design system (see [client/src/theme.ts](client/src/theme.ts)).
