@@ -28,7 +28,7 @@ export function MessageLogPanel() {
       bg={panelBg}
       borderRadius="lg"
       boxShadow="md"
-      p={3}
+      p={2}
       h="100%"
       overflowY="auto"
       ref={logRef}

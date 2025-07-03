@@ -46,6 +46,35 @@ enum AffixType {
   SUFFIX
   }
 
+enum SpellType {
+  CLASS
+  UNIVERSAL
+}
+
+enum TargetType {
+  SELF
+  TARGET_ENEMY
+  TARGET_ALLY
+  AREA_OF_EFFECT
+}
+
+enum DamageType {
+  PHYSICAL
+  FIRE
+  FROST
+  GLOOM
+  HOLY
+  SHOCK
+}
+
+enum EffectType {
+  DIRECT_DAMAGE
+  HEAL
+  APPLY_STATUS_EFFECT
+  BUFF
+  DEBUFF
+}
+
 // --- MODELS ---
 
 
@@ -82,6 +111,7 @@ model Character {
   currentRoomId         String
   room                  Room    @relation("RoomToCharacters", fields: [currentRoomId], references: [id])
   inventory             Item[]  @relation("CharacterToItems")
+  spells                CharacterSpell[]
 }
 
 model Room {
@@ -176,4 +206,64 @@ model Mob {
   experienceAward   Int
   roomId            String
   room              Room      @relation("RoomToMobs", fields: [roomId], references: [id])
+}
+
+// Master spell definitions
+model Spell {
+  id              Int         @id @default(autoincrement())
+  name            String      @unique
+  description     String
+  spellType       SpellType
+  requiredClass   Class?
+  requiredLevel   Int
+  manaCost        Int
+  targetType      TargetType
+  castingTime     Int         // 0 = instant, 1 = 1 round, -1 = channeled
+  cooldown        Int
+  effects         SpellEffect[]
+  characterSpells CharacterSpell[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// Individual effects within a spell
+model SpellEffect {
+  id              Int         @id @default(autoincrement())
+  spellId         Int
+  spell           Spell       @relation(fields: [spellId], references: [id], onDelete: Cascade)
+  effectType      EffectType
+  damageType      DamageType?
+  baseValue       Int
+  scalingFactor   Float
+  statusEffectId  Int?
+  statusEffect    StatusEffect? @relation(fields: [statusEffectId], references: [id])
+  duration        Int?        // Duration in rounds
+  order           Int         // Order of effects within the spell
+}
+
+// Status effects that can be applied by spells
+model StatusEffect {
+  id              Int         @id @default(autoincrement())
+  name            String      @unique
+  description     String
+  effectType      EffectType
+  damageType      DamageType?
+  baseValue       Int
+  scalingFactor   Float
+  duration        Int
+  maxStacks       Int         @default(1)
+  spellEffects    SpellEffect[]
+}
+
+// Character spellbook (spells known by each character)
+model CharacterSpell {
+  id              String      @id @default(cuid())
+  characterId     String
+  character       Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  spellId         Int
+  spell           Spell       @relation(fields: [spellId], references: [id], onDelete: Cascade)
+  learnedAt       DateTime    @default(now())
+  cooldownUntil   DateTime?   // Track cooldown per character
+
+  @@unique([characterId, spellId])
 }

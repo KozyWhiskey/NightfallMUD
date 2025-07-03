@@ -27,22 +27,26 @@ export function InputPanel() {
   const panelBg = 'gray.900';
 
   return (
-    <Box bg={panelBg} borderRadius="lg" boxShadow="md" p={2} mt={2}>
-      <Flex direction="row" gap={2}>
+    <Box bg={panelBg} borderRadius="lg" boxShadow="md" p={1} mt={2} fontFamily="mono">
+      <Flex direction="row" gap={1}>
         <Input
-          ref={inputRef} // Attach the ref
-          type="text" 
-          value={inputValue} 
-          onChange={(e) => setInputValue(e.target.value)} 
-          onKeyPress={(e) => e.key === 'Enter' && handleSendCommand()} 
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSendCommand()}
           placeholder={isActionDisabled ? "Waiting for next round..." : "Type a command..."}
           disabled={isActionDisabled}
-          autoFocus // Focus the input when the component first loads
+          autoFocus
           color="blue.200"
           bg="gray.800"
           _placeholder={{ color: 'gray.500' }}
+          fontFamily="mono"
+          fontSize="sm"
+          px={2}
+          py={1}
         />
-        <Button onClick={handleSendCommand} disabled={isActionDisabled} colorScheme="blue">
+        <Button onClick={handleSendCommand} disabled={isActionDisabled} colorScheme="blue" fontSize="sm" px={3} py={1}>
           Send
         </Button>
       </Flex>

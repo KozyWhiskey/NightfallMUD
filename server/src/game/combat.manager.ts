@@ -9,7 +9,14 @@ import { DeathService } from './services/death.service';
 import { allRoomTemplates } from '../data';
 import { gameEngine } from '../services/game.service';
 
-interface QueuedAction { actorId: string; actorType: 'CHARACTER' | 'MOB'; action: 'attack'; targetId: string; }
+interface QueuedAction { 
+  actorId: string; 
+  actorType: 'CHARACTER' | 'MOB'; 
+  action: 'attack' | 'cast'; 
+  targetId: string; 
+  spellId?: number;
+  castingTime?: number;
+}
 interface CombatInstance {
   roomId: string;
   participantIds: Set<string>;
@@ -71,6 +78,26 @@ export class CombatManager {
     combat.actionQueue.push({ actorId: actor.id, actorType: 'CHARACTER', action, targetId });
   }
 
+  public queueSpellAction(actor: Character, spellId: number, targetId: string | null, castingTime: number) {
+    let combat = this.activeCombats.get(actor.currentRoomId);
+    if (!combat) {
+      combat = { roomId: actor.currentRoomId, participantIds: new Set(), actionQueue: [], mobTargets: new Map() };
+      this.activeCombats.set(actor.currentRoomId, combat);
+    }
+    combat.participantIds.add(actor.id);
+    if (targetId) {
+      combat.participantIds.add(targetId);
+    }
+    combat.actionQueue.push({ 
+      actorId: actor.id, 
+      actorType: 'CHARACTER', 
+      action: 'cast', 
+      targetId: targetId || '', 
+      spellId, 
+      castingTime 
+    });
+  }
+
   public removeCharacterFromCombat(characterId: string) {
     for (const combat of this.activeCombats.values()) {
       if (combat.participantIds.has(characterId)) {
@@ -86,6 +113,101 @@ export class CombatManager {
       }
     }
     return false;
+  }
+
+  private async resolveSpellAction(actor: CharacterWithRelations, spellId: number, target: any, roomId: string): Promise<GameEvent[]> {
+    const events: GameEvent[] = [];
+    
+    try {
+      // Get spell details
+      const spell = await this.prisma.spell.findUnique({
+        where: { id: spellId },
+        include: {
+          effects: {
+            include: {
+              statusEffect: true
+            },
+            orderBy: {
+              order: 'asc'
+            }
+          }
+        }
+      });
+
+      if (!spell) {
+        events.push({ target: 'room', type: 'message', payload: { roomId, message: `${actor.name}'s spell fizzles!`, exclude: [] }});
+        return events;
+      }
+
+      const effectiveStats = this.attributeService.getEffectiveStats(actor);
+
+      for (const effect of (spell as any).effects) {
+        switch (effect.effectType) {
+          case 'DIRECT_DAMAGE':
+            if (target && 'hp' in target) {
+              const damage = Math.max(1, effect.baseValue + (effectiveStats.intelligence * effect.scalingFactor));
+              target.hp -= damage;
+              events.push({
+                target: 'room',
+                type: 'message',
+                payload: {
+                  roomId,
+                  message: `${actor.name}'s ${(spell as any).name} hits ${target.name} for ${damage} damage!`,
+                  exclude: []
+                }
+              });
+            }
+            break;
+
+          case 'HEAL':
+            if (target && 'hp' in target) {
+              const healing = Math.max(1, effect.baseValue + (effectiveStats.wisdom * effect.scalingFactor));
+              const oldHp = target.hp;
+              target.hp = Math.min(target.hp + healing, target.maxHp || target.hp);
+              const actualHealing = target.hp - oldHp;
+              events.push({
+                target: 'room',
+                type: 'message',
+                payload: {
+                  roomId,
+                  message: `${actor.name}'s ${(spell as any).name} heals ${target.name} for ${actualHealing} health!`,
+                  exclude: []
+                }
+              });
+            }
+            break;
+
+          case 'APPLY_STATUS_EFFECT':
+            if (target && effect.statusEffect) {
+              events.push({
+                target: 'room',
+                type: 'message',
+                payload: {
+                  roomId,
+                  message: `${actor.name}'s ${(spell as any).name} applies ${effect.statusEffect.name} to ${target.name}!`,
+                  exclude: []
+                }
+              });
+              // TODO: Implement status effect application
+            }
+            break;
+        }
+      }
+
+      // Update target in database if it's a character
+      if (target && 'experienceToNextLevel' in target) {
+        await this.prisma.character.update({
+          where: { id: target.id },
+          data: { hp: target.hp }
+        });
+      }
+
+    } catch (error) {
+      console.error('Error resolving spell action:', error);
+      events.push({ target: 'room', type: 'message', payload: { roomId, message: `${actor.name}'s spell fizzles!`, exclude: [] }});
+    }
+
+    return events;
   }
 
   private async resolveAllCombatRounds() {
@@ -126,29 +248,36 @@ export class CombatManager {
 
       for (const queuedAction of actionQueue) {
         const actorData = participants.get(queuedAction.actorId);
-        const targetData = participants.get(queuedAction.targetId);
-        if (actorData && targetData && targetData.hp > 0 && actorData.hp > 0) {
-          const actor = this.attributeService.getEffectiveStats(actorData as CharacterWithRelations | Mob);
-          const target = this.attributeService.getEffectiveStats(targetData as CharacterWithRelations | Mob);
-          
-          const damage = Math.max(1, actor.strength - target.defense);
-          targetData.hp -= damage;
-          allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `${actor.name} hits ${target.name} for ${damage} damage!`, exclude: [] }});
-          
-          if (targetData.hp <= 0) {
-            targetData.hp = 0;
-            if ('experienceAward' in targetData) {
-              defeatedMobIds.add(targetData.id);
-              combat.participantIds.delete(targetData.id);
-              allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `The ${targetData.name} has been defeated!`, exclude: [] }});
-              if ('experienceToNextLevel' in actorData) {
-                const payload: MobDefeatedPayload = { mob: targetData, killer: actorData as CharacterWithRelations, roomId };
-                gameEventEmitter.emit('mobDefeated', payload);
+        const targetData = queuedAction.targetId ? participants.get(queuedAction.targetId) : null;
+        
+        if (actorData && actorData.hp > 0) {
+          if (queuedAction.action === 'attack' && targetData && targetData.hp > 0) {
+            const actor = this.attributeService.getEffectiveStats(actorData as CharacterWithRelations | Mob);
+            const target = this.attributeService.getEffectiveStats(targetData as CharacterWithRelations | Mob);
+            
+            const damage = Math.max(1, actor.strength - target.defense);
+            targetData.hp -= damage;
+            allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `${actor.name} hits ${target.name} for ${damage} damage!`, exclude: [] }});
+            
+            if (targetData.hp <= 0) {
+              targetData.hp = 0;
+              if ('experienceAward' in targetData) {
+                defeatedMobIds.add(targetData.id);
+                combat.participantIds.delete(targetData.id);
+                allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `The ${targetData.name} has been defeated!`, exclude: [] }});
+                if ('experienceToNextLevel' in actorData) {
+                  const payload: MobDefeatedPayload = { mob: targetData, killer: actorData as CharacterWithRelations, roomId };
+                  gameEventEmitter.emit('mobDefeated', payload);
+                }
+              } else {
+                allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `${targetData.name} has been defeated!`, exclude: [] }});
+                this.deathService.handlePlayerDeath(targetData as CharacterWithRelations);
               }
-            } else {
-              allEvents.push({ target: 'room', type: 'message', payload: { roomId, message: `${targetData.name} has been defeated!`, exclude: [] }});
-              this.deathService.handlePlayerDeath(targetData as CharacterWithRelations);
             }
+          } else if (queuedAction.action === 'cast' && queuedAction.spellId) {
+            // Handle spell casting
+            const spellEvents = await this.resolveSpellAction(actorData as CharacterWithRelations, queuedAction.spellId, targetData, roomId);
+            allEvents.push(...spellEvents);
           }
         }
       }

@@ -22,6 +22,9 @@ import { AttackCommand } from './commands/attack.command';
 import { AssignStatsCommand } from './commands/assignStats.command';
 import { EquipCommand } from './commands/equip.command';
 import { UnequipCommand } from './commands/unequip.command';
+import { CastCommand } from './commands/cast.command';
+import { LearnCommand } from './commands/learn.command';
+import { SpellsCommand } from './commands/spells.command';
 
 export interface Command { action: string; payload?: any; }
 export interface GameEvent { target: string; type: 'gameUpdate' | 'message'; payload: any; }
@@ -61,6 +64,9 @@ export class GameEngine {
     this.commandRegistry.set('assignStats', new AssignStatsCommand());
     this.commandRegistry.set('equip', new EquipCommand());
     this.commandRegistry.set('unequip', new UnequipCommand());
+    this.commandRegistry.set('cast', new CastCommand());
+    this.commandRegistry.set('learn', new LearnCommand());
+    this.commandRegistry.set('spells', new SpellsCommand());
   }
 
   async processCommand(characterId: string, command: Command): Promise<GameEvent[]> {

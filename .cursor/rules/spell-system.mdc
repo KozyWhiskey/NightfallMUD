@@ -1,0 +1,65 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# NightfallMUD Spell System Guide
+
+## Overview
+The spell system enables players to learn, view, and cast spells, with full integration across the backend (Prisma, API, game engine) and frontend (React/Chakra UI).
+
+---
+
+## Backend (server/)
+
+### Data Model
+- Spells and status effects are defined in [spells.ts](mdc:server/src/data/spells.ts) and the Prisma schema ([schema.prisma](mdc:server/prisma/schema.prisma)).
+- Key models: `Spell`, `SpellEffect`, `StatusEffect`, `CharacterSpell`.
+- Spells are seeded via [seed.ts](mdc:server/prisma/seed.ts).
+
+### Spell Service
+- Core logic for spell lookup, learning, and casting is in [spell.service.ts](mdc:server/src/game/spell.service.ts).
+- Spell actions are integrated into the combat system ([combat.manager.ts](mdc:server/src/game/combat.manager.ts)).
+
+### API Endpoints
+- `/api/spellbook` (GET): Returns the player's known spells.
+- `/api/spell/learn` (POST): Learn a new spell.
+- `/api/spell/cast` (POST): Cast a spell.
+- See [routes/spell.ts](mdc:server/src/routes/spell.ts) and [services/web.service.ts](mdc:server/src/services/web.service.ts).
+
+### Game Commands
+- In-game commands for spellcasting: [cast.command.ts](mdc:server/src/game/commands/cast.command.ts), [learn.command.ts](mdc:server/src/game/commands/learn.command.ts), [spells.command.ts](mdc:server/src/game/commands/spells.command.ts).
+
+---
+
+## Frontend (client/)
+
+### State Management
+- Player spell data is managed in [useGameStore.ts](mdc:client/src/stores/useGameStore.ts).
+- Types for spells and player are in [types.ts](mdc:client/src/types.ts).
+
+### UI Components
+- **SpellbookPanel** ([SpellbookPanel.tsx](mdc:client/src/components/SpellbookPanel.tsx)): Displays known spells, allows casting.
+- **AbilitiesPanel** ([AbilitiesPanel.tsx](mdc:client/src/components/AbilitiesPanel.tsx)): Shows character abilities.
+- **Quickbar** ([Quickbar.tsx](mdc:client/src/components/Quickbar.tsx)): Hotkey slots for spells/abilities.
+- **TabbedView** ([TabbedView.tsx](mdc:client/src/components/TabbedView.tsx)): Renders tabs for Spellbook, Abilities, etc., with icons.
+- **Game** ([Game.tsx](mdc:client/src/components/Game.tsx)): Integrates all panels and quickbar into the main UI.
+
+### Chakra UI v3
+- All UI uses Chakra UI v3 patterns (see [chakra-ui-v3](mdc:chakra-ui-v3.mdc)).
+- No external CSS; all styling via Chakra props.
+
+---
+
+## Data Flow
+1. **Spell definitions**: Authored in backend data files and seeded to DB.
+2. **Player learns/casts spells**: Via API or in-game commands.
+3. **Frontend fetches spellbook**: Renders spells in SpellbookPanel and Quickbar.
+4. **Casting**: Sends command to backend, which resolves effects in combat/game engine.
+
+---
+
+## Extending the System
+- Add new spells/status effects in [spells.ts](mdc:server/src/data/spells.ts) and update [seed.ts](mdc:server/prisma/seed.ts).
+- Update UI panels to support new spell types or effects as needed.
+- Follow Chakra UI v3 and project conventions for all new UI.

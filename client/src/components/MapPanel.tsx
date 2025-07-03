@@ -174,17 +174,15 @@ export function MapPanel() {
     <Box
       ref={panelRef}
       p="20px"
-      bg="gray.800"
+      bg="transparent"
       borderRadius="lg"
       border="1px solid"
       borderColor="gray.700"
+      boxShadow="0 0 32px 8px #111112"
       h="30vh"
       display="flex"
       flexDirection="column"
     >
-      <Heading as="h3" mb="15px" color="gray.100" fontSize="1.2em" textAlign="center">
-        {currentRoom.name}
-      </Heading>
       <Box flex="1" position="relative" overflow="hidden">
         <svg 
           viewBox={`0 0 ${gridSize * (CELL_SIZE + CELL_GAP)} ${gridSize * (CELL_SIZE + CELL_GAP)}`}
@@ -192,8 +190,8 @@ export function MapPanel() {
             width: '100%',
             height: '100%',
             display: 'block',
-            background: 'radial-gradient(ellipse at center, #23232a 60%, #18181b 100%)',
-            filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.35))',
+            background: 'radial-gradient(ellipse at center, #18181b 60%, #111112 100%)',
+            filter: 'drop-shadow(0 2px 12px #111112cc)',
           }}
         >
           <defs>
@@ -216,7 +214,20 @@ export function MapPanel() {
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
+            {/* Vignette mask for edge fade */}
+            <radialGradient id="vignette" cx="50%" cy="50%" r="80%">
+              <stop offset="80%" stopColor="#000" stopOpacity="0" />
+              <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
+            </radialGradient>
           </defs>
+          {/* Vignette overlay for edge fade */}
+          <rect
+            x="0" y="0"
+            width={gridSize * (CELL_SIZE + CELL_GAP)}
+            height={gridSize * (CELL_SIZE + CELL_GAP)}
+            fill="url(#vignette)"
+            pointerEvents="none"
+          />
           {/* Connection lines */}
           {lines.map(line => (
             <line 
@@ -326,6 +337,28 @@ export function MapPanel() {
               </g>
             );
           })}
+          {/* Fog of war: intrusive edge mist */}
+          <g style={{ pointerEvents: 'none' }}>
+            <defs>
+              <radialGradient id="fogOfWar" cx="50%" cy="50%" r="80%">
+                <stop offset="60%" stopColor="#000" stopOpacity="0" />
+                <stop offset="80%" stopColor="#3a4a4a" stopOpacity="0.18" />
+                <stop offset="95%" stopColor="#18181b" stopOpacity="0.38" />
+                <stop offset="100%" stopColor="#111112" stopOpacity="0.65" />
+              </radialGradient>
+              <filter id="fogBlur" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="16" />
+              </filter>
+            </defs>
+            <ellipse
+              cx="50%"
+              cy="50%"
+              rx={gridSize * (CELL_SIZE + CELL_GAP) * 0.48}
+              ry={gridSize * (CELL_SIZE + CELL_GAP) * 0.48}
+              fill="url(#fogOfWar)"
+              filter="url(#fogBlur)"
+            />
+          </g>
         </svg>
         {/* Tooltip */}
         {tooltip && (

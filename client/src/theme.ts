@@ -6,7 +6,25 @@ const system = createSystem(defaultConfig, {
       background:
         'radial-gradient(ellipse at center, #18181b 60%, #111112 100%)', // deep vignette
       color: 'var(--chakra-colors-gray-100)',
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'Inter, Segoe UI, system-ui, sans-serif',
+    },
+    // Minimal dark scrollbar for all scrollable elements
+    '*': {
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#444 #1a1a1a',
+    },
+    '*::-webkit-scrollbar': {
+      width: '6px',
+    },
+    '*::-webkit-scrollbar-track': {
+      background: '#1a1a1a',
+    },
+    '*::-webkit-scrollbar-thumb': {
+      background: '#444',
+      borderRadius: '3px',
+    },
+    '*::-webkit-scrollbar-thumb:hover': {
+      background: '#555',
     },
   },
   theme: {
@@ -43,11 +61,24 @@ const system = createSystem(defaultConfig, {
         },
       },
       fonts: {
-        heading: { value: 'Merriweather, Georgia, serif' }, // Gothic/gloomy
-        body: { value: 'Inter, system-ui, sans-serif' },
+        heading: { value: 'Inter, Segoe UI, system-ui, sans-serif' },
+        body: { value: 'Inter, Segoe UI, system-ui, sans-serif' },
+        mono: { value: 'Menlo, Consolas, Monaco, Liberation Mono, monospace' },
+      },
+      fontSizes: {
+        xs: { value: '12px' },
+        sm: { value: '13px' },
+        md: { value: '14px' },
+        lg: { value: '16px' },
+        xl: { value: '18px' },
+      },
+      fontWeights: {
+        normal: { value: 400 },
+        medium: { value: 500 },
+        semibold: { value: 600 },
+        bold: { value: 700 },
       },
     },
-    // Add more theme customizations here as needed
   },
 });
 

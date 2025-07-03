@@ -2,6 +2,7 @@
 import { allAffixes } from './affixes';
 import { baseItemTypes } from './baseItemTypes';
 import { havenRooms } from './zones/haven';
+import { allSpells, allStatusEffects } from './spells';
 
 // Consolidate all room templates from all zones into one object
 const allRoomTemplates = {
@@ -18,5 +19,7 @@ export {
   allAffixes, 
   baseItemTypes, 
   allRoomTemplates, 
-  allMobTemplates 
+  allMobTemplates,
+  allSpells,
+  allStatusEffects
 };

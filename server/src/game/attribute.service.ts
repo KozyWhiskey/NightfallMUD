@@ -13,6 +13,8 @@ export interface EffectiveStats {
   hp: number;
   strength: number;
   defense: number;
+  intelligence: number;
+  wisdom: number;
   // We can add more stats here later (e.g., dexterity, resolve)
 }
 
@@ -24,6 +26,8 @@ export class AttributeService {
       hp: participant.hp,
       strength: participant.strength,
       defense: participant.defense,
+      intelligence: 'intelligence' in participant ? participant.intelligence : 0,
+      wisdom: 'wisdom' in participant ? participant.wisdom : 0,
     };
 
     // If it's a character, add stats from their equipped items.

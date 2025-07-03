@@ -11,11 +11,9 @@ import { PrismaClient, Class } from '@prisma/client';
 import { Command, GameEvent } from '../game/gameEngine';
 import { startingClassData } from '../game/class.data';
 import { ipcEmitter } from './ipc.emitter';
+import spellRoutes from '../routes/spell';
+import { authMiddleware as importedAuthMiddleware, AuthenticatedRequest } from '../middleware/auth';
 import dotenv from 'dotenv';
-
-export interface AuthenticatedRequest extends Request {
-    user?: { accountId: string; username: string; };
-}
 
 dotenv.config();
 
@@ -48,18 +46,7 @@ class WebService {
     this.app.use(express.json());
   }
 
-  public authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ message: 'Token required.' });
-    
-    const token = authHeader.split(' ')[1];
-    try {
-      (req as any).user = jwt.verify(token, this.JWT_SECRET) as { accountId: string; username: string };
-      next();
-    } catch (error) {
-      return res.status(403).json({ message: 'Invalid or expired token.' });
-    }
-  };
+  public authMiddleware = importedAuthMiddleware;
 
   private setupRoutes() {
     this.app.post('/api/auth/register', async (req: Request, res: Response) => {
@@ -129,6 +116,9 @@ class WebService {
           res.status(500).json({ message: 'Internal error creating character.' });
         }
     });
+
+    // Add spell routes
+    this.app.use('/api', spellRoutes);
   }
 
   private setupWebSocketServer() {
@@ -195,10 +185,6 @@ class WebService {
       console.log(`✅ Web Service is running on http://localhost:${port}`);
     });
   }
-}
-
-export interface AuthenticatedRequest extends Request {
-    user?: { accountId: string; username: string; };
 }
 
 export const webService = new WebService();

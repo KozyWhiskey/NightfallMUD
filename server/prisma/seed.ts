@@ -5,7 +5,9 @@ import {
   allRoomTemplates, 
   allMobTemplates,
   baseItemTypes,
-  allAffixes
+  allAffixes,
+  allSpells,
+  allStatusEffects
 } from '../src/data';
 import bcrypt from 'bcrypt';
 
@@ -20,6 +22,10 @@ async function main() {
   await prisma.mob.deleteMany();
   await prisma.character.deleteMany();
   await prisma.account.deleteMany();
+  await prisma.characterSpell.deleteMany();
+  await prisma.spellEffect.deleteMany();
+  await prisma.spell.deleteMany();
+  await prisma.statusEffect.deleteMany();
   await prisma.affix.deleteMany();
   await prisma.baseItem.deleteMany();
   await prisma.room.deleteMany();
@@ -32,6 +38,38 @@ async function main() {
   await prisma.baseItem.createMany({ data: baseItemTypes });
   await prisma.affix.createMany({ data: allAffixes });
   console.log(`Seeded ${baseItemTypes.length} base item types and ${allAffixes.length} affixes.`);
+
+  // Seed status effects first
+  console.log('Seeding status effects...');
+  await prisma.statusEffect.createMany({ data: allStatusEffects });
+  console.log(`${allStatusEffects.length} status effects seeded.`);
+  
+  // Seed spells
+  console.log('Seeding spells...');
+  for (const spellData of allSpells) {
+    const { effects, ...spellFields } = spellData;
+    
+    const spell = await prisma.spell.create({
+      data: spellFields
+    });
+    
+    // Create effects for this spell
+    for (const effectData of effects) {
+      const { statusEffectName, ...effectFields } = effectData;
+      
+      await prisma.spellEffect.create({
+        data: {
+          ...effectFields,
+          spellId: spell.id,
+          statusEffectId: statusEffectName ? 
+            (await prisma.statusEffect.findUnique({ where: { name: statusEffectName } }))?.id : 
+            null
+        }
+      });
+    }
+  }
+  
+  console.log(`${allSpells.length} spells seeded.`);
 
   // 2. Create all Rooms
   console.log('Seeding Rooms...');

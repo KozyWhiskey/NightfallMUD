@@ -12,6 +12,9 @@ import { RoomInfoPanel } from './RoomInfoPanel';
 import { InputPanel } from './InputPanel';
 import { VitalsPanel } from './VitalsPanel';
 import { MapPanel } from './MapPanel';
+import { SpellbookPanel } from './SpellbookPanel';
+import { AbilitiesPanel } from './AbilitiesPanel';
+import { Quickbar } from './Quickbar';
 import { Grid, Flex, Box } from '@chakra-ui/react';
 import type { Player } from '../types';
 
@@ -76,10 +79,12 @@ export function Game({ token, characterId }: GameProps) {
 
   const leftPanelTabs = [
     { label: 'Attributes', content: <StatsPanel onLevelUpClick={() => setIsLevelUpVisible(true)} /> },
-    { label: 'Equipped', content: <AvatarPanel /> },
+    { label: 'Spellbook', content: <SpellbookPanel /> },
+    { label: 'Abilities', content: <AbilitiesPanel /> },
   ];
   
   const rightPanelTabs = [
+    { label: 'Equipped', content: <AvatarPanel /> },
     { label: 'Backpack', content: <InventoryPanel /> },
     { label: 'Quests', content: <div>Quest Log Coming Soon!</div> },
   ];
@@ -109,8 +114,10 @@ export function Game({ token, characterId }: GameProps) {
           gridColumn={{ base: '1', md: '1' }}
           gridRow="1"
           minW="0"
+          gap={3}
         >
           <VitalsPanel />
+          <Quickbar />
           <TabbedView tabs={leftPanelTabs} />
         </Flex>
         {/* Main Panel */}

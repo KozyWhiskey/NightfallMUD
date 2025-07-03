@@ -1,6 +1,6 @@
     // client/src/components/TabbedView.tsx
     import { Tabs, Box } from '@chakra-ui/react';
-    import { HiChartBar, HiShieldCheck, HiBriefcase, HiBookOpen } from 'react-icons/hi';
+import { HiChartBar, HiShieldCheck, HiBriefcase, HiBookOpen, HiSparkles, HiLightningBolt } from 'react-icons/hi';
 
     interface TabItem {
       label: string;
@@ -23,6 +23,10 @@ const getIconForTab = (label: string) => {
       return <HiBriefcase size={16} />;
     case 'quests':
       return <HiBookOpen size={16} />;
+    case 'spells':
+      return <HiSparkles size={16} />;
+    case 'abilities':
+      return <HiLightningBolt size={16} />;
     default:
       return null;
   }
@@ -84,6 +88,8 @@ const getIconForTab = (label: string) => {
                 value={tab.label}
                 p="0"
                 bg="transparent"
+                h="100%"
+                overflow="hidden"
               >
                 {tab.content}
               </Tabs.Content>
